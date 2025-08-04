@@ -1,3 +1,4 @@
+import 'package:bneeds_taxi_customer/config/auth_service.dart' as authService;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import '../widgets/common_button.dart';
 
 final usernameProvider = StateProvider<String>((ref) => '');
 final mobileProvider = StateProvider<String>((ref) => '');
+final isLoadingProvider = StateProvider<bool>((ref) => false);
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
@@ -118,146 +120,27 @@ class LoginScreen extends ConsumerWidget {
                 /// Continue Button
                 ElevatedButton(
                   onPressed: isFormValid
-                      ? () {
-                          showDialog(
-                            context: context,
-                            barrierDismissible: true,
-                            builder: (context) {
-                              final otpControllers = List.generate(
-                                4,
-                                (_) => TextEditingController(),
-                              );
-                              final focusNodes = List.generate(
-                                4,
-                                (_) => FocusNode(),
-                              );
+                      ? () async {
+                          ref.read(isLoadingProvider.notifier).state = true;
 
-                              void checkOTPAndSubmit() {
-                                final otp = otpControllers
-                                    .map((c) => c.text)
-                                    .join();
-                                if (otp.length == 4) {
-                                  Navigator.pop(context);
-                                  context.go('/home');
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Please enter all 4 digits',
-                                      ),
-                                      behavior: SnackBarBehavior.floating,
-                                      backgroundColor: Colors.redAccent,
-                                    ),
-                                  );
-                                }
-                              }
-
-                              return AlertDialog(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                title: const Center(
-                                  child: Text(
-                                    'Enter OTP',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 24,
-                                  horizontal: 16,
-                                ),
-                                content: SizedBox(
-                                  height: 160, // ⬅️ Increase height here
-                                  child: Column(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceEvenly,
-                                        children: List.generate(4, (index) {
-                                          return SizedBox(
-                                            width: 48,
-                                            height: 56,
-                                            child: TextField(
-                                              controller: otpControllers[index],
-                                              focusNode: focusNodes[index],
-                                              keyboardType:
-                                                  TextInputType.number,
-                                              textAlign: TextAlign.center,
-                                              maxLength: 1,
-                                              style: const TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                              decoration: InputDecoration(
-                                                counterText: '',
-                                                contentPadding:
-                                                    const EdgeInsets.all(0),
-                                                filled: true,
-                                                fillColor:
-                                                    Colors.deepPurple.shade50,
-                                                enabledBorder:
-                                                    OutlineInputBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            12,
-                                                          ),
-                                                      borderSide:
-                                                          const BorderSide(
-                                                            color: Colors.grey,
-                                                          ),
-                                                    ),
-                                                focusedBorder:
-                                                    OutlineInputBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            12,
-                                                          ),
-                                                      borderSide:
-                                                          const BorderSide(
-                                                            color: Colors
-                                                                .deepPurple,
-                                                          ),
-                                                    ),
-                                              ),
-                                              onChanged: (value) {
-                                                if (value.isNotEmpty &&
-                                                    index < 3) {
-                                                  FocusScope.of(
-                                                    context,
-                                                  ).requestFocus(
-                                                    focusNodes[index + 1],
-                                                  );
-                                                } else if (value.isNotEmpty &&
-                                                    index == 3) {
-                                                  checkOTPAndSubmit();
-                                                } else if (value.isEmpty &&
-                                                    index > 0) {
-                                                  FocusScope.of(
-                                                    context,
-                                                  ).requestFocus(
-                                                    focusNodes[index - 1],
-                                                  );
-                                                }
-                                              },
-                                            ),
-                                          );
-                                        }),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      const Text(
-                                        "Enter the 4-digit OTP sent to your number.",
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                          await authService.sendOTP(
+                            ref: ref,
+                            phoneNumber: mobile,
+                            onCodeSent: () {
+                              ref.read(isLoadingProvider.notifier).state =
+                                  false;
+                              showDialog(
+                                context: context,
+                                builder: (context) => OTPDialog(ref: ref),
+                              );
+                            },
+                            onError: (error) {
+                              ref.read(isLoadingProvider.notifier).state =
+                                  false;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(error),
+                                  backgroundColor: Colors.red,
                                 ),
                               );
                             },
@@ -276,16 +159,134 @@ class LoginScreen extends ConsumerWidget {
                     ),
                     elevation: isFormValid ? 3 : 0,
                   ),
-                  child: const Text(
-                    'Next',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                  ),
+                  child: ref.watch(isLoadingProvider)
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Next',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
                 ),
 
                 const SizedBox(height: 20),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class OTPDialog extends StatefulWidget {
+  final WidgetRef ref;
+  const OTPDialog({super.key, required this.ref});
+
+  @override
+  State<OTPDialog> createState() => _OTPDialogState();
+}
+
+class _OTPDialogState extends State<OTPDialog> {
+  final List<TextEditingController> otpControllers = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
+
+  final List<FocusNode> focusNodes = List.generate(6, (_) => FocusNode());
+
+  void _submitOTP() {
+    final otp = otpControllers.map((c) => c.text).join();
+    if (otp.length == 6) {
+      authService.verifyOTP(
+        ref: widget.ref,
+        otp: otp,
+        onSuccess: () {
+          Navigator.pop(context);
+          context.go('/home');
+        },
+        onError: (err) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(err), backgroundColor: Colors.redAccent),
+          );
+        },
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Center(
+        child: Text('Enter OTP', style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      content: SizedBox(
+        height: 160,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: List.generate(6, (index) {
+                return SizedBox(
+                  width: 48,
+                  height: 56,
+                  child: TextField(
+                    controller: otpControllers[index],
+                    focusNode: focusNodes[index],
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    maxLength: 1,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    decoration: InputDecoration(
+                      counterText: '',
+                      filled: true,
+                      fillColor: Colors.deepPurple.shade50,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.deepPurple),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      if (value.isNotEmpty && index < 5) {
+                        FocusScope.of(
+                          context,
+                        ).requestFocus(focusNodes[index + 1]);
+                      } else if (value.isEmpty && index > 0) {
+                        FocusScope.of(
+                          context,
+                        ).requestFocus(focusNodes[index - 1]);
+                      } else if (index == 5 && value.isNotEmpty) {
+                        _submitOTP();
+                      }
+                    },
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Enter the 6-digit OTP sent to your number.",
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
         ),
       ),
     );

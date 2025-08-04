@@ -1,5 +1,14 @@
+import 'package:bneeds_taxi_customer/screens/CustomerSupportScreen.dart';
+import 'package:bneeds_taxi_customer/screens/DriverSearchingScreen.dart';
+import 'package:bneeds_taxi_customer/screens/MyRidesScreen.dart';
+import 'package:bneeds_taxi_customer/screens/ProfileScreen.dart';
+import 'package:bneeds_taxi_customer/screens/RideCompleteScreen.dart';
+import 'package:bneeds_taxi_customer/screens/RideOnTripScreen.dart';
 import 'package:bneeds_taxi_customer/screens/SelectLocationScreen.dart';
+import 'package:bneeds_taxi_customer/screens/SelectOnMapScreen.dart';
 import 'package:bneeds_taxi_customer/screens/ServiceOptionsScreen.dart';
+import 'package:bneeds_taxi_customer/screens/TrackingScreen.dart';
+import 'package:bneeds_taxi_customer/screens/WalletScreen.dart';
 import 'package:go_router/go_router.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/login_screen.dart';
@@ -7,7 +16,7 @@ import '../screens/splash_screen.dart';
 
 final GoRouter router = GoRouter(
   routes: [
-    GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+    GoRoute(path: '/', builder: (context, state) => const LoginScreen()),
     GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
@@ -18,6 +27,39 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/service-options',
       builder: (context, state) => const ServiceOptionsScreen(),
+    ),
+    GoRoute(
+      path: '/searching',
+      builder: (context, state) => const DriverSearchingScreen(),
+    ),
+    GoRoute(
+      path: '/tracking',
+      builder: (context, state) => const TrackingScreen(),
+    ),
+    GoRoute(path: '/wallet', builder: (context, state) => const WalletScreen()),
+    GoRoute(
+      path: '/select-on-map',
+      builder: (context, state) => const SelectOnMapScreen(),
+    ),
+    GoRoute(
+      path: '/ride-on-trip',
+      builder: (context, state) => const RideOnTripScreen(),
+    ),
+    GoRoute(
+      path: '/ride-complete',
+      builder: (context, state) => const RideCompleteScreen(),
+    ),
+    GoRoute(
+      path: '/customer-support',
+      builder: (context, state) => const CustomerSupportScreen(),
+    ),
+    GoRoute(
+      path: '/my-rides',
+      builder: (context, state) => const MyRidesScreen(),
+    ),
+    GoRoute(
+      path: '/profile',
+      builder: (context, state) => const ProfileScreen(),
     ),
   ],
 );

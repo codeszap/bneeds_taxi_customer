@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class CommonDrawer extends StatelessWidget {
   final VoidCallback onLogout;
@@ -10,21 +11,18 @@ class CommonDrawer extends StatelessWidget {
     return Drawer(
       child: Column(
         children: [
-     
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            color: Colors.deepPurple.shade50,
+            color: Colors.deepPurple,
             child: Column(
               children: [
-                SizedBox(
-                  height: 20,
-                ),
+                SizedBox(height: 20),
                 Row(
                   children: [
-                    const CircleAvatar(
+                     CircleAvatar(
                       radius: 30,
-                      backgroundColor: Colors.deepPurple,
-                      child: Icon(Icons.person, size: 30, color: Colors.white),
+                      backgroundColor: Colors.deepPurple.shade50,
+                      child: Icon(Icons.person, size: 30, color: Colors.black),
                     ),
                     const SizedBox(width: 16),
                     Column(
@@ -32,7 +30,11 @@ class CommonDrawer extends StatelessWidget {
                       children: const [
                         Text(
                           "Bneeds",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                         SizedBox(height: 4),
                         Text(
@@ -43,33 +45,55 @@ class CommonDrawer extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(
-                  height: 20,
-                ),
+                SizedBox(height: 20),
               ],
             ),
           ),
-      
-      
+          _buildDrawerItem(
+            icon: Icons.dashboard,
+            title: "Dashboard",
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/home');
+            },
+          ),
           // Drawer Menu Items
           _buildDrawerItem(
             icon: Icons.help_outline,
             title: "Help",
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/customer-support');
+            },
           ),
           _buildDrawerItem(
             icon: Icons.history,
             title: "My Rides",
-            onTap: () {},
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/my-rides');
+            },
           ),
           _buildDrawerItem(
             icon: Icons.person_outline,
             title: "Profile",
-            onTap: () {},
+            onTap: () {
+              Navigator.pop(context); // Close the drawer
+              context.push('/profile'); // Push the screen instead of replacing
+            },
           ),
-      
+
+          _buildDrawerItem(
+            icon: Icons.wallet,
+            title: "Wallet",
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/wallet');
+            },
+          ),
+
           const Spacer(),
-      
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: ElevatedButton.icon(
@@ -86,7 +110,7 @@ class CommonDrawer extends StatelessWidget {
               onPressed: onLogout,
             ),
           ),
-      
+
           const SizedBox(height: 20),
         ],
       ),

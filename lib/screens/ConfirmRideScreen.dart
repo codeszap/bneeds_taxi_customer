@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+// Existing provider
 final selectedServiceProvider = StateProvider<Map<String, dynamic>?>(
   (ref) => null,
 );
+
+// New date & time providers
+final selectedDateProvider = StateProvider<DateTime?>((ref) => null);
+final selectedTimeProvider = StateProvider<TimeOfDay?>((ref) => null);
 
 class ConfirmRideScreen extends ConsumerWidget {
   const ConfirmRideScreen({super.key});
@@ -11,6 +17,8 @@ class ConfirmRideScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(selectedServiceProvider);
+    final selectedDate = ref.watch(selectedDateProvider);
+    final selectedTime = ref.watch(selectedTimeProvider);
 
     if (selected == null) {
       return const Scaffold(body: Center(child: Text("No service selected")));
@@ -118,13 +126,131 @@ class ConfirmRideScreen extends ConsumerWidget {
               ),
             ),
 
+            const SizedBox(height: 30),
+
+            // Date & Time Picker Section
+            // Date & Time Picker Section
+            const Text(
+              "Schedule Ride",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                // Date Picker
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () async {
+                      final pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now().add(
+                          const Duration(days: 1),
+                        ),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 30)),
+                      );
+                      if (pickedDate != null) {
+                        ref.read(selectedDateProvider.notifier).state =
+                            pickedDate;
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors
+                            .deepPurple
+                            .shade50, // 🟣 Light purple background
+                        border: Border.all(color: Colors.deepPurple.shade100),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today,
+                            size: 20,
+                            color: Colors.deepPurple,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              selectedDate != null
+                                  ? "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}"
+                                  : "Select Date",
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Time Picker
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () async {
+                      final pickedTime = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.now(),
+                      );
+                      if (pickedTime != null) {
+                        ref.read(selectedTimeProvider.notifier).state =
+                            pickedTime;
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors
+                            .deepPurple
+                            .shade50, // 🟣 Light purple background
+                        border: Border.all(color: Colors.deepPurple.shade100),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.access_time,
+                            size: 20,
+                            color: Colors.deepPurple,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              selectedTime != null
+                                  ? selectedTime.format(context)
+                                  : "Select Time",
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
             const Spacer(),
 
             // Confirm Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                icon:  Icon(Icons.check_circle_outline,color: Colors.white.withOpacity(0.7), size: 20),
+                icon: Icon(
+                  Icons.check_circle_outline,
+                  color: Colors.white.withOpacity(0.7),
+                  size: 20,
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple,
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -133,6 +259,16 @@ class ConfirmRideScreen extends ConsumerWidget {
                   ),
                 ),
                 onPressed: () {
+                  if (selectedDate == null || selectedTime == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Please select date & time first"),
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Show confirmation dialog
                   showDialog(
                     context: context,
                     barrierDismissible: false,
@@ -149,7 +285,6 @@ class ConfirmRideScreen extends ConsumerWidget {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Icon Header
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
@@ -159,13 +294,10 @@ class ConfirmRideScreen extends ConsumerWidget {
                               child: const Icon(
                                 Icons.check_circle,
                                 size: 48,
-                                color: Colors.white,
+                                color: Colors.deepPurple,
                               ),
                             ),
-
                             const SizedBox(height: 16),
-
-                            // Title
                             const Text(
                               "Ride Confirmed",
                               style: TextStyle(
@@ -173,12 +305,9 @@ class ConfirmRideScreen extends ConsumerWidget {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-
                             const SizedBox(height: 10),
-
-                            // Content
                             Text(
-                              "Your ${selected['type']} is on the way.\nPlease be ready at your pickup location.",
+                              "Your ${selected['type']} is scheduled for ${selectedDate!.day}/${selectedDate.month} at ${selectedTime!.format(context)}.\nPlease be ready at pickup.",
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontSize: 15,
@@ -186,10 +315,7 @@ class ConfirmRideScreen extends ConsumerWidget {
                                 height: 1.4,
                               ),
                             ),
-
                             const SizedBox(height: 24),
-
-                            // OK Button
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
@@ -200,10 +326,7 @@ class ConfirmRideScreen extends ConsumerWidget {
                                           )
                                           .state =
                                       null;
-                                  Navigator.popUntil(
-                                    context,
-                                    (route) => route.isFirst,
-                                  );
+                                  context.go('/searching');
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.deepPurple,
@@ -214,9 +337,12 @@ class ConfirmRideScreen extends ConsumerWidget {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
-                                child:  Text(
+                                child: Text(
                                   "OK",
-                                  style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.7)),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.white.withOpacity(0.9),
+                                  ),
                                 ),
                               ),
                             ),
