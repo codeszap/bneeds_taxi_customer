@@ -5,85 +5,106 @@ class CommonDrawer extends StatelessWidget {
 
   const CommonDrawer({super.key, required this.onLogout});
 
-@override
-Widget build(BuildContext context) {
-  return Drawer(
-    child: SafeArea(
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-         SizedBox(height: 10),
-          SizedBox(
-            height: 90,
-            child: const DrawerHeader(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(radius: 30, child: Icon(Icons.person, size: 30)),
-                  SizedBox(width: 20),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("saf.dev",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      Text("saf@domain.com",
-                          style: TextStyle(fontSize: 14, color: Colors.grey)),
-                    ],
-                  ),
-                ],
-              ),
+     
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            color: Colors.deepPurple.shade50,
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 20,
+                ),
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 30,
+                      backgroundColor: Colors.deepPurple,
+                      child: Icon(Icons.person, size: 30, color: Colors.white),
+                    ),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          "Bneeds",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          "bneeds@domain.com",
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                SizedBox(
+                  height: 20,
+                ),
+              ],
             ),
           ),
-
-          // ✅ Visible divider
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: const Divider(
-              thickness: 0,
-              color: Colors.grey,
-            ),
-          ),
-
-          buildDrawerItem(
-            icon: Icons.help,
+      
+      
+          // Drawer Menu Items
+          _buildDrawerItem(
+            icon: Icons.help_outline,
             title: "Help",
-            onTap: () {
-              Navigator.pop(context);
-            },
+            onTap: () => Navigator.pop(context),
           ),
-          buildDrawerItem(
+          _buildDrawerItem(
             icon: Icons.history,
             title: "My Rides",
             onTap: () {},
           ),
-          buildDrawerItem(
-            icon: Icons.person,
+          _buildDrawerItem(
+            icon: Icons.person_outline,
             title: "Profile",
             onTap: () {},
           ),
-
+      
           const Spacer(),
-
-          buildDrawerItem(
-            icon: Icons.logout,
-            title: "Logout",
-            onTap: onLogout,
+      
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.logout),
+              label: const Text("Logout"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: onLogout,
+            ),
           ),
+      
+          const SizedBox(height: 20),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
 
-  Widget buildDrawerItem({
+  Widget _buildDrawerItem({
     required IconData icon,
     required String title,
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
+      leading: Icon(icon, color: Colors.deepPurple),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
       onTap: onTap,
+      horizontalTitleGap: 12,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      hoverColor: Colors.deepPurple.withOpacity(0.05),
     );
   }
 }

@@ -4,6 +4,7 @@ class CommonButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
   final bool isLoading;
+  final Widget? leading;
 
   final Color? backgroundColor;
   final Color? foregroundColor;
@@ -15,6 +16,7 @@ class CommonButton extends StatelessWidget {
     required this.text,
     required this.onPressed,
     this.isLoading = false,
+    this.leading,
     this.backgroundColor,
     this.foregroundColor,
     this.width,
@@ -36,14 +38,27 @@ class CommonButton extends StatelessWidget {
         ),
         child: isLoading
             ? const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: Colors.white,
-          ),
-        )
-            : Text(text, style: const TextStyle(fontSize: 16)),
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (leading != null) ...[
+                    leading!,
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    text,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ],
+              ),
       ),
     );
   }

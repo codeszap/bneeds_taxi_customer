@@ -19,35 +19,51 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      backgroundColor: Colors.deepPurple.shade700,
+      elevation: 0,
       leading: showBackButton
           ? IconButton(
-              icon: const Icon(Icons.menu),
+              icon: const Icon(Icons.menu, color: Colors.white),
               onPressed: () {
-                Scaffold.of(context).openDrawer(); 
+                Scaffold.of(context).openDrawer();
               },
             )
           : null,
       title: showSearch
           ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+              height: 42,
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(50),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
               ),
-            child: TextField(
+              child: TextField(
                 onChanged: onSearchChanged,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.black, fontSize: 14),
                 decoration: const InputDecoration(
-                  hintText: 'Search Location...',
-                  hintStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
+                  contentPadding: EdgeInsets.symmetric(vertical: 10),
+                  hintText: 'Search location...',
+                  hintStyle: TextStyle(color: Colors.grey),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey),
                   border: InputBorder.none,
-                  prefixIcon: Icon(Icons.search, color: Colors.black),
                 ),
               ),
-          )
-          : Text(title),
+            )
+          : Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 18,
+              ),
+            ),
       centerTitle: true,
-      actions: actions,
+      actions: actions ??
+          [
+            IconButton(
+              icon: const Icon(Icons.notifications_none, color: Colors.white),
+              onPressed: () {},
+            ),
+          ],
     );
   }
 

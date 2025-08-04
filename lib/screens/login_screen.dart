@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../theme/app_colors.dart';
 import '../widgets/common_textfield.dart';
 import '../widgets/common_button.dart';
@@ -16,76 +17,275 @@ class LoginScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final username = ref.watch(usernameProvider);
     final mobile = ref.watch(mobileProvider);
-
     final isFormValid = username.isNotEmpty && mobile.length == 10;
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Spacer(),
-            CommonTextField(
-              label: 'Username',
-              keyboardType: TextInputType.text,
-              onChanged: (val) => ref.read(usernameProvider.notifier).state = val,
-            ),
-            const SizedBox(height: 20),
-            CommonTextField(
-              label: 'Mobile Number',
-              keyboardType: TextInputType.phone,
-              maxLength: 10,
-              onChanged: (val) => ref.read(mobileProvider.notifier).state = val,
-            ),
-            const Spacer(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Text.rich(
-                TextSpan(
-                  text: 'By continuing, you agree to our ',
-                  style: const TextStyle(color: Colors.black, fontSize: 12),
-                  children: [
-                    TextSpan(
-                      text: 'Terms of Service',
-                      style: const TextStyle(
-                        color: AppColors.secondaryBlue,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () {
-                          print('T&S');
-                        },
+      backgroundColor: Colors.deepPurple.shade50,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                /// App Branding or Logo
+                const SizedBox(height: 40),
+                Center(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        Image.asset(
+                          'assets/images/logo.png',
+                          width: 90,
+                          height: 90,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Welcome Back!",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple.shade800,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          "Login to continue your ride",
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                      ],
                     ),
-                    const TextSpan(text: ' and '),
-                    TextSpan(
-                      text: 'Privacy Policy',
-                      style: const TextStyle(
-                        color: AppColors.secondaryBlue,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () {
-                          print('Privacy Policy tapped');
-                        },
-                    ),
-                    const TextSpan(text: '.'),
-                  ],
+                  ),
                 ),
-                textAlign: TextAlign.left,
-              ),
+
+                const SizedBox(height: 50),
+
+                /// Username Field
+                CommonTextField(
+                  label: 'Username',
+                  keyboardType: TextInputType.text,
+                  onChanged: (val) =>
+                      ref.read(usernameProvider.notifier).state = val,
+                ),
+                const SizedBox(height: 20),
+
+                /// Mobile Field
+                CommonTextField(
+                  label: 'Mobile Number',
+                  keyboardType: TextInputType.phone,
+                  maxLength: 10,
+                  onChanged: (val) =>
+                      ref.read(mobileProvider.notifier).state = val,
+                ),
+                const SizedBox(height: 20),
+
+                /// Terms & Privacy
+                Text.rich(
+                  TextSpan(
+                    text: 'By continuing, you agree to our ',
+                    style: const TextStyle(color: Colors.black87, fontSize: 12),
+                    children: [
+                      TextSpan(
+                        text: 'Terms of Service',
+                        style: const TextStyle(
+                          color: AppColors.secondaryBlue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () {
+                            print('Terms tapped');
+                          },
+                      ),
+                      const TextSpan(text: ' and '),
+                      TextSpan(
+                        text: 'Privacy Policy',
+                        style: const TextStyle(
+                          color: AppColors.secondaryBlue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () {
+                            print('Privacy tapped');
+                          },
+                      ),
+                      const TextSpan(text: '.'),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                /// Continue Button
+                ElevatedButton(
+                  onPressed: isFormValid
+                      ? () {
+                          showDialog(
+                            context: context,
+                            barrierDismissible: true,
+                            builder: (context) {
+                              final otpControllers = List.generate(
+                                4,
+                                (_) => TextEditingController(),
+                              );
+                              final focusNodes = List.generate(
+                                4,
+                                (_) => FocusNode(),
+                              );
+
+                              void checkOTPAndSubmit() {
+                                final otp = otpControllers
+                                    .map((c) => c.text)
+                                    .join();
+                                if (otp.length == 4) {
+                                  Navigator.pop(context);
+                                  context.go('/home');
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Please enter all 4 digits',
+                                      ),
+                                      behavior: SnackBarBehavior.floating,
+                                      backgroundColor: Colors.redAccent,
+                                    ),
+                                  );
+                                }
+                              }
+
+                              return AlertDialog(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                title: const Center(
+                                  child: Text(
+                                    'Enter OTP',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 24,
+                                  horizontal: 16,
+                                ),
+                                content: SizedBox(
+                                  height: 160, // ⬅️ Increase height here
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceEvenly,
+                                        children: List.generate(4, (index) {
+                                          return SizedBox(
+                                            width: 48,
+                                            height: 56,
+                                            child: TextField(
+                                              controller: otpControllers[index],
+                                              focusNode: focusNodes[index],
+                                              keyboardType:
+                                                  TextInputType.number,
+                                              textAlign: TextAlign.center,
+                                              maxLength: 1,
+                                              style: const TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                              decoration: InputDecoration(
+                                                counterText: '',
+                                                contentPadding:
+                                                    const EdgeInsets.all(0),
+                                                filled: true,
+                                                fillColor:
+                                                    Colors.deepPurple.shade50,
+                                                enabledBorder:
+                                                    OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                      borderSide:
+                                                          const BorderSide(
+                                                            color: Colors.grey,
+                                                          ),
+                                                    ),
+                                                focusedBorder:
+                                                    OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                      borderSide:
+                                                          const BorderSide(
+                                                            color: Colors
+                                                                .deepPurple,
+                                                          ),
+                                                    ),
+                                              ),
+                                              onChanged: (value) {
+                                                if (value.isNotEmpty &&
+                                                    index < 3) {
+                                                  FocusScope.of(
+                                                    context,
+                                                  ).requestFocus(
+                                                    focusNodes[index + 1],
+                                                  );
+                                                } else if (value.isNotEmpty &&
+                                                    index == 3) {
+                                                  checkOTPAndSubmit();
+                                                } else if (value.isEmpty &&
+                                                    index > 0) {
+                                                  FocusScope.of(
+                                                    context,
+                                                  ).requestFocus(
+                                                    focusNodes[index - 1],
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                          );
+                                        }),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        "Enter the 4-digit OTP sent to your number.",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        }
+                      : null,
+
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isFormValid
+                        ? AppColors.success
+                        : Colors.grey,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: isFormValid ? 3 : 0,
+                  ),
+                  child: const Text(
+                    'Next',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+              ],
             ),
-            const SizedBox(height: 20),
-            CommonButton(
-              text: 'Next',
-              onPressed: isFormValid ? () {
-                context.go('/home');
-              } : () {},
-              isLoading: false,
-              width: double.infinity,
-              backgroundColor: isFormValid ? AppColors.success : Colors.grey,
-            ),
-          ],
+          ),
         ),
       ),
     );
