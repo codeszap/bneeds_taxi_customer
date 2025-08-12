@@ -22,12 +22,20 @@ final GoRouter router = GoRouter(
     GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
     GoRoute(
       path: '/select-location',
-      builder: (context, state) => const SelectLocationScreen(),
+      builder: (context, state) {
+        final vehTypeId = state.extra as String;
+        return SelectLocationScreen(vehTypeId: vehTypeId);
+      },
     ),
+
     GoRoute(
       path: '/service-options',
-      builder: (context, state) => const ServiceOptionsScreen(),
+      builder: (context, state) {
+        final vehTypeId = state.extra as String;
+        return ServiceOptionsScreen(vehTypeId: vehTypeId);
+      },
     ),
+
     GoRoute(
       path: '/searching',
       builder: (context, state) => const DriverSearchingScreen(),
@@ -57,9 +65,12 @@ final GoRouter router = GoRouter(
       path: '/my-rides',
       builder: (context, state) => const MyRidesScreen(),
     ),
-    GoRoute(
-      path: '/profile',
-      builder: (context, state) => const ProfileScreen(),
-    ),
+  GoRoute(
+  path: '/profile',
+  builder: (context, state) {
+    return const ProfileScreen();
+  },
+),
+
   ],
 );

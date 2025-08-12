@@ -1,11 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:math';
+import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bneeds_taxi_customer/repositories/profile_repository.dart';
 
-final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
-  return FirebaseAuth.instance;
-});
-
-final verificationIdProvider = StateProvider<String?>((ref) => null);
+final generatedOtpProvider = StateProvider<String?>((ref) => null);
 
 Future<void> sendOTP({
   required WidgetRef ref,
@@ -13,42 +11,63 @@ Future<void> sendOTP({
   required Function onCodeSent,
   required Function(String error) onError,
 }) async {
-  await ref.read(firebaseAuthProvider).verifyPhoneNumber(
-    phoneNumber: '+91$phoneNumber',
-    timeout: const Duration(seconds: 60),
-    verificationCompleted: (PhoneAuthCredential credential) {},
-    verificationFailed: (FirebaseAuthException e) => onError(e.message ?? "Failed"),
-    codeSent: (String verificationId, int? resendToken) {
-      ref.read(verificationIdProvider.notifier).state = verificationId;
+  try {
+    // 1. Generate a random 4-digit OTP
+    final otp = (Random().nextInt(9000) + 1000).toString(); // 1000–9999
+
+    // 2. Store OTP locally for later verification
+    ref.read(generatedOtpProvider.notifier).state = otp;
+
+    // 3. Prepare message
+    final message = "microotp~$otp";
+
+    // 4. Build URL for SMS API
+    final url = Uri.parse(
+      "https://nminfotech.in/smsautosend.aspx"
+      "?id=RAMMTR"
+      "&PWD=RAMMTR"
+      "&mob=$phoneNumber"
+      "&msg=$message"
+      "&tm=T"
+    );
+
+    // Print URL in console for debugging
+    print("OTP URL: $url");
+
+    // 5. Send OTP via SMS API
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
       onCodeSent();
-    },
-    codeAutoRetrievalTimeout: (String verificationId) {
-      ref.read(verificationIdProvider.notifier).state = verificationId;
-    },
-  );
+    } else {
+      onError("Failed to send OTP: ${response.body}");
+    }
+  } catch (e) {
+    onError("Error sending OTP: ${e.toString()}");
+  }
 }
 
-Future<void> verifyOTP({
+/// Returns true if user exists, false if new user
+Future<bool> verifyOTPAndCheckUser({
   required WidgetRef ref,
   required String otp,
-  required Function() onSuccess,
-  required Function(String error) onError,
+  required String username, // unused now
+  required String mobileNo,
+  required ProfileRepository profileRepo,
 }) async {
-  final verificationId = ref.read(verificationIdProvider);
-  if (verificationId == null) {
-    onError("Verification ID is null");
-    return;
+  final generatedOtp = ref.read(generatedOtpProvider);
+  if (generatedOtp == null) {
+    throw Exception("No OTP generated");
   }
 
-  final credential = PhoneAuthProvider.credential(
-    verificationId: verificationId,
-    smsCode: otp,
+  if (otp != generatedOtp) {
+    throw Exception("Invalid OTP");
+  }
+
+  // Check user existence via API using only mobile number
+  final profiles = await profileRepo.fetchUserProfile(
+    mobileno: mobileNo,
   );
 
-  try {
-    await ref.read(firebaseAuthProvider).signInWithCredential(credential);
-    onSuccess();
-  } catch (e) {
-    onError("Invalid OTP");
-  }
+  return profiles.isNotEmpty;
 }

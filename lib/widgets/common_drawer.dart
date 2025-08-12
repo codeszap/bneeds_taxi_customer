@@ -1,3 +1,4 @@
+import 'package:bneeds_taxi_customer/screens/ProfileScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,7 +20,7 @@ class CommonDrawer extends StatelessWidget {
                 SizedBox(height: 20),
                 Row(
                   children: [
-                     CircleAvatar(
+                    CircleAvatar(
                       radius: 30,
                       backgroundColor: Colors.deepPurple.shade50,
                       child: Icon(Icons.person, size: 30, color: Colors.black),
@@ -77,10 +78,10 @@ class CommonDrawer extends StatelessWidget {
           _buildDrawerItem(
             icon: Icons.person_outline,
             title: "Profile",
-            onTap: () {
-              Navigator.pop(context); // Close the drawer
-              context.push('/profile'); // Push the screen instead of replacing
-            },
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/profile');
+              },
           ),
 
           _buildDrawerItem(

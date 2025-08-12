@@ -1,4 +1,5 @@
 import 'package:bneeds_taxi_customer/config/auth_service.dart' as authService;
+import 'package:bneeds_taxi_customer/repositories/profile_repository.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -197,28 +198,42 @@ class OTPDialog extends StatefulWidget {
 
 class _OTPDialogState extends State<OTPDialog> {
   final List<TextEditingController> otpControllers = List.generate(
-    6,
+    4,
     (_) => TextEditingController(),
   );
 
-  final List<FocusNode> focusNodes = List.generate(6, (_) => FocusNode());
+  final List<FocusNode> focusNodes = List.generate(4, (_) => FocusNode());
 
-  void _submitOTP() {
+  void _submitOTP() async {
     final otp = otpControllers.map((c) => c.text).join();
-    if (otp.length == 6) {
-      authService.verifyOTP(
-        ref: widget.ref,
-        otp: otp,
-        onSuccess: () {
-          Navigator.pop(context);
+    if (otp.length == 4) { // now checking 4 digits
+      try {
+        final mobileNo = widget.ref.read(mobileProvider);
+        final profileRepo = ProfileRepository();
+
+        final userExists = await authService.verifyOTPAndCheckUser(
+          ref: widget.ref,
+          otp: otp, // OTP check done locally
+          username: "", // Not needed for API check now
+          mobileNo: mobileNo, // Only this is sent to API
+          profileRepo: profileRepo,
+        );
+
+        Navigator.pop(context); // close OTP dialog
+
+        if (userExists) {
+          context.go('/profile');
+        } else {
           context.go('/home');
-        },
-        onError: (err) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(err), backgroundColor: Colors.redAccent),
-          );
-        },
-      );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
   }
 
@@ -237,7 +252,7 @@ class _OTPDialogState extends State<OTPDialog> {
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: List.generate(6, (index) {
+              children: List.generate(4, (index) {
                 return SizedBox(
                   width: 48,
                   height: 56,
@@ -265,15 +280,11 @@ class _OTPDialogState extends State<OTPDialog> {
                       ),
                     ),
                     onChanged: (value) {
-                      if (value.isNotEmpty && index < 5) {
-                        FocusScope.of(
-                          context,
-                        ).requestFocus(focusNodes[index + 1]);
+                      if (value.isNotEmpty && index < 3) {
+                        FocusScope.of(context).requestFocus(focusNodes[index + 1]);
                       } else if (value.isEmpty && index > 0) {
-                        FocusScope.of(
-                          context,
-                        ).requestFocus(focusNodes[index - 1]);
-                      } else if (index == 5 && value.isNotEmpty) {
+                        FocusScope.of(context).requestFocus(focusNodes[index - 1]);
+                      } else if (index == 3 && value.isNotEmpty) {
                         _submitOTP();
                       }
                     },
@@ -283,7 +294,7 @@ class _OTPDialogState extends State<OTPDialog> {
             ),
             const SizedBox(height: 8),
             const Text(
-              "Enter the 6-digit OTP sent to your number.",
+              "Enter the 4-digit OTP sent to your number.",
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],

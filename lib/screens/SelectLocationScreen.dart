@@ -14,7 +14,7 @@ final toLocationProvider = StateProvider<String>((ref) => '');
 final placeQueryProvider = StateProvider<String>((ref) => '');
 
 // Google Places API Key
-const String _googleApiKey = 'AIzaSyAy0MyhU37waAAlNte_AfM1iir9OdB2GUE';
+const String _googleApiKey = 'AIzaSyAWzUqf3Z8xvkjYV7F4gOGBBJ5d_i9HZhs';
 
 final placeSuggestionsProvider = FutureProvider.family<List<String>, String>((
   ref,
@@ -41,7 +41,8 @@ final placeSuggestionsProvider = FutureProvider.family<List<String>, String>((
 });
 
 class SelectLocationScreen extends ConsumerWidget {
-  const SelectLocationScreen({super.key});
+  final String vehTypeId;
+  const SelectLocationScreen({super.key, required this.vehTypeId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -77,7 +78,7 @@ class SelectLocationScreen extends ConsumerWidget {
                 },
               ),
               const SizedBox(height: 20),
-              _buildMapButton(context,ref),
+              _buildMapButton(context, ref),
               const SizedBox(height: 40),
               const Text(
                 "\uD83D\uDCCD Recent Locations",
@@ -178,31 +179,31 @@ class SelectLocationScreen extends ConsumerWidget {
     );
   }
 
-Widget _buildMapButton(BuildContext context, WidgetRef ref) {
-  return SizedBox(
-    width: double.infinity,
-    child: ElevatedButton.icon(
-      onPressed: () async {
-      final selectedAddress = await context.push<String>('/select-on-map');
-if (selectedAddress != null && selectedAddress.isNotEmpty) {
-  ref.read(toLocationProvider.notifier).state = selectedAddress;
-  ref.read(placeQueryProvider.notifier).state = ''; // Clear suggestion box
-}
-
-      },
-      icon: const Icon(Icons.map_outlined),
-      label: const Text("Select on Map"),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+  Widget _buildMapButton(BuildContext context, WidgetRef ref) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          final selectedAddress = await context.push<String>('/select-on-map');
+          if (selectedAddress != null && selectedAddress.isNotEmpty) {
+            ref.read(toLocationProvider.notifier).state = selectedAddress;
+            ref.read(placeQueryProvider.notifier).state =
+                ''; // Clear suggestion box
+          }
+        },
+        icon: const Icon(Icons.map_outlined),
+        label: const Text("Select on Map"),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.deepPurple,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildRecentLocationTile(
     BuildContext context,
@@ -237,7 +238,8 @@ if (selectedAddress != null && selectedAddress.isNotEmpty) {
         onTap: () {
           ref.read(toLocationProvider.notifier).state = location;
           ref.read(placeQueryProvider.notifier).state = '';
-          context.push('/service-options');
+          print("Selected vehicle type: $vehTypeId");
+          context.push('/service-options', extra: vehTypeId);
         },
       ),
     );
