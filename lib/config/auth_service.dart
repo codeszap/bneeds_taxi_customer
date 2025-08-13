@@ -51,11 +51,12 @@ Future<void> sendOTP({
 Future<bool> verifyOTPAndCheckUser({
   required WidgetRef ref,
   required String otp,
-  required String username, // unused now
+  required String username, // unused
   required String mobileNo,
   required ProfileRepository profileRepo,
 }) async {
   final generatedOtp = ref.read(generatedOtpProvider);
+  
   if (generatedOtp == null) {
     throw Exception("No OTP generated");
   }
@@ -64,10 +65,10 @@ Future<bool> verifyOTPAndCheckUser({
     throw Exception("Invalid OTP");
   }
 
-  // Check user existence via API using only mobile number
-  final profiles = await profileRepo.fetchUserProfile(
-    mobileno: mobileNo,
-  );
+  // Fetch user profile from API
+  final profiles = await profileRepo.fetchUserProfile(mobileno: mobileNo);
 
+  // If API returned empty list, user does not exist
   return profiles.isNotEmpty;
 }
+
