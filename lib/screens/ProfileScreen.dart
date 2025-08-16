@@ -1,11 +1,10 @@
 import 'package:bneeds_taxi_customer/providers/profile_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../widgets/common_drawer.dart';
 import '../models/user_profile_model.dart';
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final sharedPrefsProvider = FutureProvider<SharedPreferences>((ref) async {
@@ -14,29 +13,30 @@ final sharedPrefsProvider = FutureProvider<SharedPreferences>((ref) async {
 
 final credentialsProvider = FutureProvider<Map<String, String>>((ref) async {
   final prefs = await ref.watch(sharedPrefsProvider.future);
-  final username = prefs.getString('username') ?? '';
-  final password = prefs.getString('password') ?? '';
-  // return {
-  //   'username': username,
-  //   'password': password,
-  // };
-
-  return {'username': "ravi", 'password': "123"};
+  final mobileno = prefs.getString('mobileno') ?? '';
+  return {'mobileno': mobileno};
 });
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  bool _isEditing = false; // edit mode toggle
+
+  @override
+  Widget build(BuildContext context) {
     final credsAsync = ref.watch(credentialsProvider);
 
     return credsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => Center(child: Text('Error loading credentials: $err')),
       data: (creds) {
-        if (creds['username']!.isEmpty || creds['password']!.isEmpty) {
-          return const Center(child: Text('No saved credentials found'));
+        if (creds['mobileno']!.isEmpty) {
+          return const Center(child: Text('No saved mobile number found'));
         }
 
         final profileAsync = ref.watch(fetchProfileProvider(creds));
@@ -47,24 +47,48 @@ class ProfileScreen extends ConsumerWidget {
             title: const Text("My Profile"),
             backgroundColor: Colors.deepPurple,
             foregroundColor: Colors.white,
+            actions: [
+              profileAsync.when(
+                data: (profiles) {
+                  if (profiles.isNotEmpty) {
+                    return IconButton(
+                      icon: Icon(_isEditing ? Icons.close : Icons.edit),
+                      onPressed: () {
+                        setState(() {
+                          _isEditing = !_isEditing;
+                        });
+                      },
+                    );
+                  }
+                  return const SizedBox();
+                },
+                loading: () => const SizedBox(),
+                error: (_, __) => const SizedBox(),
+              ),
+            ],
           ),
-          drawer: CommonDrawer(onLogout: () {}),
+          drawer: CommonDrawer(),
           body: profileAsync.when(
             data: (profiles) {
-              if (profiles.isEmpty) {
-                return const Center(child: Text("No profile found"));
+              if (profiles.isEmpty || _isEditing) {
+                return _buildProfileForm(
+                  context,
+                  ref,
+                  creds['mobileno']!,
+                  profiles.isNotEmpty ? profiles.first : null,
+                );
+              } else {
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.refresh(fetchProfileProvider(creds));
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    child: _buildProfileView(context, profiles.first),
+                  ),
+                );
               }
-              final profile = profiles.first;
-              return RefreshIndicator(
-                onRefresh: () async {
-                  ref.refresh(fetchProfileProvider(creds));
-                },
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(20),  // padding moved here for better UX
-                  child: _buildProfileView(context, ref, profile),
-                ),
-              );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, stack) {
@@ -78,40 +102,17 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProfileView(
-    BuildContext context,
-    WidgetRef ref,
-    UserProfile profile,
-  ) {
-    // Parse the dob string (e.g., "8/4/2025 12:00:00 AM")
+  Widget _buildProfileView(BuildContext context, UserProfile profile) {
     DateTime? parsedDob;
     try {
       parsedDob = DateFormat("M/d/yyyy h:mm:ss a").parse(profile.dob);
-    } catch (e) {
-      parsedDob = null; // fallback if parsing fails
+    } catch (_) {
+      parsedDob = null;
     }
 
-    // Format the parsed date
     final formattedDob = parsedDob != null
         ? DateFormat("dd-MM-yyyy").format(parsedDob)
-        : profile.dob; // fallback to original if parsing failed
-
-    void _insertProfile(
-      BuildContext context,
-      WidgetRef ref,
-      UserProfile profile,
-    ) async {
-      try {
-        final result = await ref.read(insertProfileProvider(profile).future);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Insert successful: $result')));
-      } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Insert failed: $e')));
-      }
-    }
+        : profile.dob;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -131,7 +132,11 @@ class ProfileScreen extends ConsumerWidget {
           style: const TextStyle(color: Colors.grey),
         ),
         const SizedBox(height: 30),
-
+        _profileTile(
+          icon: Icons.person,
+          title: "Gender",
+          value: profile.gender,
+        ),
         _profileTile(
           icon: Icons.location_on,
           title: "City",
@@ -147,38 +152,6 @@ class ProfileScreen extends ConsumerWidget {
           icon: Icons.calendar_today,
           title: "DOB",
           value: formattedDob,
-        ),
-
-        const SizedBox(height: 30), // replaced Spacer with SizedBox
-
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () {
-              final manualProfile = UserProfile(
-                userName: "mahesh",
-                password: "12345",
-                mobileNo: "9876543210",
-                gender: "M",
-                dob: "09-08-2025 10:00:00 AM",
-                address1: "123 Street",
-                address2: "Area",
-                address3: "City",
-                city: "Madurai",
-              );
-              _insertProfile(context, ref, manualProfile);
-            },
-            icon: const Icon(Icons.logout),
-            label: const Text("Logout"),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              foregroundColor: Colors.deepPurple,
-              side: BorderSide(color: Colors.deepPurple.shade300),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
         ),
       ],
     );
@@ -227,6 +200,202 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProfileForm(
+    BuildContext context,
+    WidgetRef ref,
+    String mobileNo,
+    UserProfile? existingProfile,
+  ) {
+    final _formKey = GlobalKey<FormState>();
+
+    final nameController = TextEditingController(
+      text: existingProfile?.userName ?? "",
+    );
+    final genderValue = ValueNotifier<String>(
+      existingProfile?.gender.isNotEmpty == true
+          ? existingProfile!.gender
+          : "M",
+    );
+    final dobController = TextEditingController(
+      text: existingProfile?.dob ?? "",
+    );
+    final address1Controller = TextEditingController(
+      text: existingProfile?.address1 ?? "",
+    );
+    final address2Controller = TextEditingController(
+      text: existingProfile?.address2 ?? "",
+    );
+    final address3Controller = TextEditingController(
+      text: existingProfile?.address3 ?? "",
+    );
+    final cityController = TextEditingController(
+      text: existingProfile?.city ?? "",
+    );
+
+    Future<void> _selectDate() async {
+      DateTime? picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime(2000, 1, 1),
+        firstDate: DateTime(1900),
+        lastDate: DateTime.now(),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: ColorScheme.light(
+                primary: Colors.deepPurple,
+                onPrimary: Colors.white,
+                onSurface: Colors.black,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+      if (picked != null) {
+        dobController.text = DateFormat("dd-MM-yyyy").format(picked);
+      }
+    }
+
+    Future<void> _saveProfile() async {
+      if (_formKey.currentState!.validate()) {
+        final newProfile = UserProfile(
+          userName: nameController.text,
+          password: "12345",
+          mobileNo: mobileNo,
+          gender: genderValue.value,
+          dob: dobController.text,
+          address1: address1Controller.text,
+          address2: address2Controller.text,
+          address3: address3Controller.text,
+          city: cityController.text,
+        );
+
+        try {
+          final result = await ref.read(
+            insertProfileProvider((profile: newProfile, action: "U")).future,
+          );
+
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Profile saved: $result')));
+          print("Profile saved successfully: $result");
+          setState(() {
+            _isEditing = false;
+          });
+
+          ref.refresh(fetchProfileProvider({'mobileno': mobileNo}));
+          context.go("/home");
+        } catch (e) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+        }
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              _styledTextField(nameController, "User Name"),
+              ValueListenableBuilder<String>(
+                valueListenable: genderValue,
+                builder: (context, value, _) {
+                  return DropdownButtonFormField<String>(
+                    value: value,
+                    items: const [
+                      DropdownMenuItem(value: "M", child: Text("Male")),
+                      DropdownMenuItem(value: "F", child: Text("Female")),
+                      DropdownMenuItem(value: "O", child: Text("Other")),
+                    ],
+                    onChanged: (newVal) {
+                      if (newVal != null) genderValue.value = newVal;
+                    },
+                    decoration: _dropdownDecoration("Gender"),
+                  );
+                },
+              ),
+              GestureDetector(
+                onTap: _selectDate,
+                child: AbsorbPointer(
+                  child: _styledTextField(dobController, "Date of Birth"),
+                ),
+              ),
+              _styledTextField(address1Controller, "Address Line 1"),
+              _styledTextField(address2Controller, "Address Line 2"),
+              _styledTextField(address3Controller, "Address Line 3"),
+              _styledTextField(cityController, "City"),
+              const SizedBox(height: 25),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _saveProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    "Save Profile",
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _dropdownDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.deepPurple),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.deepPurple, width: 1.5),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.deepPurple.shade200),
+      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+    );
+  }
+
+  Widget _styledTextField(TextEditingController controller, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.deepPurple),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.deepPurple, width: 1.5),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.deepPurple.shade200),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 14,
+            horizontal: 16,
+          ),
+        ),
+        validator: (value) =>
+            value == null || value.isEmpty ? "Please enter $label" : null,
       ),
     );
   }

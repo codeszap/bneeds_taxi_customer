@@ -3,4 +3,5 @@ class ApiEndpoints {
   static const recentRides = "recentRidesApi.aspx";
    static const String vehicleSubType = 'frmVehSubTypeMasterApi.aspx';
    static const String userProfile = "frmUserProfileInsertApi.aspx";
+   static const String bookingRide = "frmvehBookingApi.aspx";
 }

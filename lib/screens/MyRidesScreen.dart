@@ -89,7 +89,7 @@ class MyRidesScreen extends ConsumerWidget {
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
       ),
-      drawer: CommonDrawer(onLogout: () {}),
+      drawer: CommonDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

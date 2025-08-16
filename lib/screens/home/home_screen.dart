@@ -23,7 +23,7 @@ class HomeScreen extends ConsumerWidget {
     ];
 
     return Scaffold(
-      drawer: CommonDrawer(onLogout: () {}),
+      drawer: CommonDrawer(),
       appBar: CommonAppBar(
         title: "Home",
         showSearch: true,

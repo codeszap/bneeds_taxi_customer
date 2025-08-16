@@ -207,9 +207,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         foregroundColor: Colors.white,
       ),
       drawer: CommonDrawer(
-        onLogout: () {
-          context.go('/login');
-        },
+       
       ),
       body: SingleChildScrollView(
         child: Column(

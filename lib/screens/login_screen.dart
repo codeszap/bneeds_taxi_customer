@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/app_colors.dart';
 import '../widgets/common_textfield.dart';
@@ -204,27 +205,38 @@ class _OTPDialogState extends State<OTPDialog> {
 
   final List<FocusNode> focusNodes = List.generate(4, (_) => FocusNode());
 
+  /// Save mobileno in SharedPreferences
+  Future<void> _saveMobileNo(String mobileno) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('mobileno', mobileno);
+    print("📦 Mobile number saved in session: $mobileno");
+  }
+
   void _submitOTP() async {
     final otp = otpControllers.map((c) => c.text).join();
-    if (otp.length == 4) { // now checking 4 digits
+    if (otp.length == 4) {
       try {
-        final mobileNo = widget.ref.read(mobileProvider);
+        final mobileNo = widget.ref.read(mobileProvider); // From your provider
         final profileRepo = ProfileRepository();
 
         final userExists = await authService.verifyOTPAndCheckUser(
           ref: widget.ref,
-          otp: otp, // OTP check done locally
-          username: "", // Not needed for API check now
-          mobileNo: mobileNo, // Only this is sent to API
+          otp: otp,
+          username: "",
+          mobileNo: mobileNo,
           profileRepo: profileRepo,
         );
 
+        // ✅ Save mobile number in SharedPreferences
+        await _saveMobileNo(mobileNo);
+
         Navigator.pop(context); // close OTP dialog
+        print("User exists: $userExists");
 
         if (userExists) {
-          context.go('/profile');
-        } else {
           context.go('/home');
+        } else {
+          context.go('/profile');
         }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(

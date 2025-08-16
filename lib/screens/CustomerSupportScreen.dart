@@ -15,9 +15,7 @@ class CustomerSupportScreen extends StatelessWidget {
         foregroundColor: Colors.white,
       ),
       drawer: CommonDrawer(
-        onLogout: () {
-          // Handle logout
-        },
+
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),

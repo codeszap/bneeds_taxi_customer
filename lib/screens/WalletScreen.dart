@@ -27,9 +27,7 @@ class WalletScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.deepPurple.shade50,
-      drawer: CommonDrawer(onLogout: () {
-        // Handle logout
-      }),
+      drawer: CommonDrawer(),
       appBar: AppBar(
         title: const Text("My Wallet"),
         backgroundColor: Colors.deepPurple,

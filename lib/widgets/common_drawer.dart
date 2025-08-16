@@ -1,11 +1,9 @@
-import 'package:bneeds_taxi_customer/screens/ProfileScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CommonDrawer extends StatelessWidget {
-  final VoidCallback onLogout;
-
-  const CommonDrawer({super.key, required this.onLogout});
+  const CommonDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -17,13 +15,13 @@ class CommonDrawer extends StatelessWidget {
             color: Colors.deepPurple,
             child: Column(
               children: [
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     CircleAvatar(
                       radius: 30,
                       backgroundColor: Colors.deepPurple.shade50,
-                      child: Icon(Icons.person, size: 30, color: Colors.black),
+                      child: const Icon(Icons.person, size: 30, color: Colors.black),
                     ),
                     const SizedBox(width: 16),
                     Column(
@@ -46,7 +44,7 @@ class CommonDrawer extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -58,7 +56,6 @@ class CommonDrawer extends StatelessWidget {
               context.push('/home');
             },
           ),
-          // Drawer Menu Items
           _buildDrawerItem(
             icon: Icons.help_outline,
             title: "Help",
@@ -78,12 +75,11 @@ class CommonDrawer extends StatelessWidget {
           _buildDrawerItem(
             icon: Icons.person_outline,
             title: "Profile",
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/profile');
-              },
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/profile');
+            },
           ),
-
           _buildDrawerItem(
             icon: Icons.wallet,
             title: "Wallet",
@@ -92,9 +88,7 @@ class CommonDrawer extends StatelessWidget {
               context.push('/wallet');
             },
           ),
-
           const Spacer(),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: ElevatedButton.icon(
@@ -108,10 +102,13 @@ class CommonDrawer extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              onPressed: onLogout,
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.clear(); // Clear session
+                context.go('/login'); // Go to login and clear navigation history
+              },
             ),
           ),
-
           const SizedBox(height: 20),
         ],
       ),

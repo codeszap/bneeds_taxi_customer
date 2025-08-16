@@ -67,7 +67,7 @@ Future<bool> verifyOTPAndCheckUser({
 
   // Fetch user profile from API
   final profiles = await profileRepo.fetchUserProfile(mobileno: mobileNo);
-
+  print("Fetched profiles: $profiles");
   // If API returned empty list, user does not exist
   return profiles.isNotEmpty;
 }

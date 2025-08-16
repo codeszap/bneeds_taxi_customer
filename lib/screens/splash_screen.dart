@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,15 +14,29 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 3), () {
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final mobileNo = prefs.getString(
+      'mobileno',
+    ); // Key used for storing mobile number
+    print("Mobile No: $mobileNo");
+    // Delay to show splash for at least 3 seconds
+    await Future.delayed(const Duration(seconds: 3));
+
+    if (!mounted) return; // Ensure widget is still in tree
+
+    if (mobileNo != null && mobileNo.isNotEmpty) {
+      context.go('/home');
+    } else {
       context.go('/login');
-    });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       backgroundColor: Colors.deepPurple.shade50,
       body: Center(
@@ -30,15 +45,8 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              /// App Logo
-              Image.asset(
-                'assets/images/logo.png',
-                width: 180,
-                height: 180,
-              ),
+              Image.asset('assets/images/logo.png', width: 180, height: 180),
               const SizedBox(height: 24),
-
-              /// App Name or Tagline
               Text(
                 "RideX",
                 style: TextStyle(
@@ -52,13 +60,10 @@ class _SplashScreenState extends State<SplashScreen> {
               const Text(
                 "Get there fast, safe and smart.",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.black54,),
+                style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
-
               const SizedBox(height: 40),
-
-              /// Loader
-              CircularProgressIndicator(
+              const CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation(Colors.deepPurple),
               ),
             ],

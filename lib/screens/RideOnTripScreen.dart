@@ -124,9 +124,6 @@ class _RideOnTripScreenState extends State<RideOnTripScreen> {
         foregroundColor: Colors.white,
       ),
       drawer: CommonDrawer(
-        onLogout: () {
-          // Handle logout
-        },
       ),
       body: Stack(
         children: [

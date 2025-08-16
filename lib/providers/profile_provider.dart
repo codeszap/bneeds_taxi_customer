@@ -9,11 +9,14 @@ final fetchProfileProvider = FutureProvider.family<List<UserProfile>, Map<String
   final repo = ref.watch(profileRepositoryProvider);
   return repo.fetchUserProfile(
     mobileno: creds['mobileno']!,
+       // mobileno: "9874512036",
   );
 });
 
 /// Insert Profile Provider
-final insertProfileProvider = FutureProvider.family<String, UserProfile>((ref, profile) {
+final insertProfileProvider = FutureProvider.family
+    .autoDispose<String, ({UserProfile profile, String action})>((ref, args) {
   final repo = ref.watch(profileRepositoryProvider);
-  return repo.insertUserProfile(profile);
+  return repo.saveUserProfile(args.profile, args.action);
 });
+
