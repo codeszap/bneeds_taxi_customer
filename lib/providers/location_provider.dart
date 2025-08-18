@@ -5,7 +5,7 @@ import 'package:geolocator/geolocator.dart';
 final locationErrorDialogShownProvider = StateProvider<bool>((ref) => false);
 final selectedServiceProvider = StateProvider<Map<String, dynamic>?>((ref) => null);
 
-final fromLocationProvider = StateProvider<String>((ref) => 'Current Location');
+final fromLocationProvider = StateProvider<String>((ref) => 'Current Locations');
 final toLocationProvider = StateProvider<String>((ref) => '');
 final placeQueryProvider = StateProvider<String>((ref) => '');
 

@@ -1,3 +1,4 @@
+import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -82,14 +83,8 @@ class MyRidesScreen extends ConsumerWidget {
     final rides = ref.watch(filteredRidesProvider);
     final selectedFilter = ref.watch(rideFilterProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.deepPurple.shade50,
-      appBar: AppBar(
-        title: const Text("My Rides"),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-      ),
-      drawer: CommonDrawer(),
+    return MainScaffold(
+        title: ("My Rides"),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

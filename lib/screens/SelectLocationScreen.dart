@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:bneeds_taxi_customer/providers/location_provider.dart';
+import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -98,12 +99,8 @@ class SelectLocationScreen extends ConsumerWidget {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Select Location"),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-      ),
+    return MainScaffold(
+      title:  ("Select Location"),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

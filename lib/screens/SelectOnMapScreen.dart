@@ -1,3 +1,4 @@
+import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
@@ -73,12 +74,8 @@ final loc.Location _location = loc.Location();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Select Location on Map"),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-      ),
+    return MainScaffold(
+       title:("Select Location on Map"),
       body: Column(
         children: [
           Expanded(

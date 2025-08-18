@@ -14,6 +14,7 @@ final sharedPrefsProvider = FutureProvider<SharedPreferences>((ref) async {
 final credentialsProvider = FutureProvider<Map<String, String>>((ref) async {
   final prefs = await ref.watch(sharedPrefsProvider.future);
   final mobileno = prefs.getString('mobileno') ?? '';
+  print("Fetched mobile number: $mobileno");
   return {'mobileno': mobileno};
 });
 
@@ -25,7 +26,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  bool _isEditing = false; // edit mode toggle
+  bool _isEditing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +45,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         return Scaffold(
           backgroundColor: Colors.deepPurple.shade50,
           appBar: AppBar(
-            title: const Text("My Profile"),
+            title: const Text("Profile"),
             backgroundColor: Colors.deepPurple,
             foregroundColor: Colors.white,
             actions: [

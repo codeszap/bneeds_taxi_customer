@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:bneeds_taxi_customer/widgets/common_drawer.dart';
+import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -199,16 +200,8 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.deepPurple.shade50,
-      appBar: AppBar(
-        backgroundColor: Colors.deepPurple,
-        title: const Text('Tracking Ride'),
-        foregroundColor: Colors.white,
-      ),
-      drawer: CommonDrawer(
-       
-      ),
+    return MainScaffold(
+       title:('Tracking Ride'),
       body: SingleChildScrollView(
         child: Column(
           children: [

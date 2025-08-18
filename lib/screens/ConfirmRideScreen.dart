@@ -1,6 +1,7 @@
 import 'package:bneeds_taxi_customer/providers/location_provider.dart';
 import 'package:bneeds_taxi_customer/repositories/booking_repository.dart';
 import 'package:bneeds_taxi_customer/models/booking_model.dart';
+import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -140,12 +141,8 @@ class ConfirmRideScreen extends ConsumerWidget {
   }
 }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Confirm Ride"),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-      ),
+    return MainScaffold(
+      title: "Confirm Ride",
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(

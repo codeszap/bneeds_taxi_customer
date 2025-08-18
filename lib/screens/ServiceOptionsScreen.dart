@@ -1,6 +1,7 @@
 import 'package:bneeds_taxi_customer/providers/location_provider.dart' show fromLocationProvider, toLocationProvider;
 import 'package:bneeds_taxi_customer/providers/vehicle_subtype_provider.dart';
 import 'package:bneeds_taxi_customer/screens/ConfirmRideScreen.dart';
+import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -17,12 +18,8 @@ class ServiceOptionsScreen extends ConsumerWidget {
     final fromLocation = ref.watch(fromLocationProvider);
     final toLocation = ref.watch(toLocationProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Choose a Service"),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-      ),
+    return MainScaffold(
+         title:("Choose a Service"),
       body: subTypesAsync.when(
         data: (subTypes) {
           return Column(

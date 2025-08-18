@@ -1,4 +1,5 @@
 import 'package:bneeds_taxi_customer/widgets/common_drawer.dart';
+import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,16 +8,8 @@ class CustomerSupportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.deepPurple.shade50,
-      appBar: AppBar(
-        title: const Text("Customer Support"),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-      ),
-      drawer: CommonDrawer(
-
-      ),
+    return MainScaffold(
+      title:("Customer Support"),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: SingleChildScrollView(

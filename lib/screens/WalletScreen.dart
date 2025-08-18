@@ -1,4 +1,5 @@
 import 'package:bneeds_taxi_customer/widgets/common_drawer.dart';
+import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
 
 class WalletScreen extends StatelessWidget {
@@ -8,31 +9,14 @@ class WalletScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final double balance = 230.0; // Dummy balance
     final List<Map<String, dynamic>> transactions = [
-      {
-        "title": "Ride Payment",
-        "amount": -120.0,
-        "date": "Aug 1, 2025",
-      },
-      {
-        "title": "Refund",
-        "amount": 50.0,
-        "date": "Jul 30, 2025",
-      },
-      {
-        "title": "Added to Wallet",
-        "amount": 300.0,
-        "date": "Jul 25, 2025",
-      },
+      {"title": "Ride Payment", "amount": -120.0, "date": "Aug 1, 2025"},
+      {"title": "Refund", "amount": 50.0, "date": "Jul 30, 2025"},
+      {"title": "Added to Wallet", "amount": 300.0, "date": "Jul 25, 2025"},
     ];
 
-    return Scaffold(
-      backgroundColor: Colors.deepPurple.shade50,
-      drawer: CommonDrawer(),
-      appBar: AppBar(
-        title: const Text("My Wallet"),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-      ),
+    return MainScaffold(
+      title: ("My Wallet"),
+
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -93,10 +77,7 @@ class WalletScreen extends StatelessWidget {
               children: const [
                 Text(
                   "Recent Transactions",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -170,7 +151,7 @@ class WalletScreen extends StatelessWidget {
                   );
                 },
               ),
-            )
+            ),
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -36,13 +37,8 @@ class _RideOnTripScreenState extends State<RideOnTripScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.deepPurple.shade50,
-      appBar: AppBar(
-        backgroundColor: Colors.deepPurple,
-        title: const Text("Ride in Progress"),
-        foregroundColor: Colors.white,
-      ),
+    return MainScaffold(
+      title:("Ride in Progress"),
       body: Stack(
         children: [
           // MAP
