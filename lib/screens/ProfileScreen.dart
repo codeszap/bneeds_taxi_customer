@@ -1,4 +1,5 @@
 import 'package:bneeds_taxi_customer/providers/profile_provider.dart';
+import 'package:bneeds_taxi_customer/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,10 +27,22 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Just in case old provider data is there
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.refresh(credentialsProvider);
+    });
+  }
+
+
   bool _isEditing = false;
+  final _formKey = GlobalKey<FormState>(); // moved here ✅
 
   @override
   Widget build(BuildContext context) {
+        final username = ref.watch(usernameProvider);
     final credsAsync = ref.watch(credentialsProvider);
 
     return credsAsync.when(
@@ -40,8 +53,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           return const Center(child: Text('No saved mobile number found'));
         }
 
-        final profileAsync = ref.watch(fetchProfileProvider(creds));
+        final profileAsync = ref.watch(
+          fetchProfileProvider(creds['mobileno']!),
+        );
 
+// print("📦 Fetched credentials: ${creds['mobileno']} | Username: $username");
+// print("📦 Profile async state: $profileAsync");
         return Scaffold(
           backgroundColor: Colors.deepPurple.shade50,
           appBar: AppBar(
@@ -55,9 +72,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     return IconButton(
                       icon: Icon(_isEditing ? Icons.close : Icons.edit),
                       onPressed: () {
-                        setState(() {
-                          _isEditing = !_isEditing;
-                        });
+                        setState(() => _isEditing = !_isEditing);
                       },
                     );
                   }
@@ -81,7 +96,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               } else {
                 return RefreshIndicator(
                   onRefresh: () async {
-                    ref.refresh(fetchProfileProvider(creds));
+                    ref.refresh(fetchProfileProvider(creds['mobileno']!));
                   },
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -205,25 +220,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  String _formatDob(String dobString) {
+    try {
+      final parsed = DateTime.parse(dobString); // or use DateFormat if not ISO
+      return DateFormat("dd-MM-yyyy").format(parsed);
+    } catch (_) {
+      return dobString; // fallback in case parsing fails
+    }
+  }
+
   Widget _buildProfileForm(
     BuildContext context,
     WidgetRef ref,
     String mobileNo,
     UserProfile? existingProfile,
   ) {
-    final _formKey = GlobalKey<FormState>();
+     final username = ref.watch(usernameProvider); // ✅ read username from provider
 
-    final nameController = TextEditingController(
-      text: existingProfile?.userName ?? "",
-    );
+  final nameController = TextEditingController(
+    text: existingProfile?.userName ?? username, // use provider value if available
+  );
+
     final genderValue = ValueNotifier<String>(
       existingProfile?.gender.isNotEmpty == true
           ? existingProfile!.gender
           : "M",
     );
     final dobController = TextEditingController(
-      text: existingProfile?.dob ?? "",
+      text: existingProfile?.dob.isNotEmpty == true
+          ? _formatDob(existingProfile!.dob)
+          : "",
     );
+
     final address1Controller = TextEditingController(
       text: existingProfile?.address1 ?? "",
     );
@@ -243,18 +271,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         initialDate: DateTime(2000, 1, 1),
         firstDate: DateTime(1900),
         lastDate: DateTime.now(),
-        builder: (context, child) {
-          return Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: ColorScheme.light(
-                primary: Colors.deepPurple,
-                onPrimary: Colors.white,
-                onSurface: Colors.black,
-              ),
-            ),
-            child: child!,
-          );
-        },
       );
       if (picked != null) {
         dobController.text = DateFormat("dd-MM-yyyy").format(picked);
@@ -263,12 +279,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     Future<void> _saveProfile() async {
       if (_formKey.currentState!.validate()) {
+        String formattedDob = dobController.text;
+        try {
+          formattedDob = DateFormat(
+            "M/d/yyyy h:mm:ss a",
+          ).format(DateFormat("dd-MM-yyyy").parse(dobController.text));
+        } catch (_) {}
+
         final newProfile = UserProfile(
+         userid: existingProfile?.userid ?? "",
           userName: nameController.text,
-          password: "12345",
+          password: "",
           mobileNo: mobileNo,
           gender: genderValue.value,
-          dob: dobController.text,
+          dob: formattedDob,
           address1: address1Controller.text,
           address2: address2Controller.text,
           address3: address3Controller.text,
@@ -276,19 +300,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         );
 
         try {
-          final result = await ref.read(
-            insertProfileProvider((profile: newProfile, action: "U")).future,
+          if (existingProfile == null) {
+            print("Inserting new profile: $newProfile");
+            await ref.read(insertProfileProvider(newProfile).future);
+          } else {
+            print("Updating existing profile: $newProfile");
+            await ref.read(updateProfileProvider(newProfile).future);
+          }
+
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('isProfileCompleted', true);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile saved successfully')),
           );
 
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Profile saved: $result')));
-          print("Profile saved successfully: $result");
-          setState(() {
-            _isEditing = false;
-          });
-
-          ref.refresh(fetchProfileProvider({'mobileno': mobileNo}));
+          setState(() => _isEditing = false);
+          ref.refresh(fetchProfileProvider(mobileNo));
           context.go("/home");
         } catch (e) {
           ScaffoldMessenger.of(

@@ -4,19 +4,23 @@ import '../repositories/profile_repository.dart';
 
 final profileRepositoryProvider = Provider((ref) => ProfileRepository());
 
-/// Fetch Profile Provider
-final fetchProfileProvider = FutureProvider.family<List<UserProfile>, Map<String, String>>((ref, creds) {
+/// 🔹 Fetch Profile Provider
+final fetchProfileProvider =
+    FutureProvider.family<List<UserProfile>, String>((ref, mobileno) {
   final repo = ref.watch(profileRepositoryProvider);
-  return repo.fetchUserProfile(
-    mobileno: creds['mobileno']!,
-       // mobileno: "9874512036",
-  );
+  return repo.fetchUserProfile(mobileno: mobileno);
 });
 
-/// Insert Profile Provider
-final insertProfileProvider = FutureProvider.family
-    .autoDispose<String, ({UserProfile profile, String action})>((ref, args) {
+/// 🔹 Insert Profile Provider
+final insertProfileProvider =
+    FutureProvider.autoDispose.family<String, UserProfile>((ref, profile) {
   final repo = ref.watch(profileRepositoryProvider);
-  return repo.saveUserProfile(args.profile, args.action);
+  return repo.insertUserProfile(profile);
 });
 
+/// 🔹 Update Profile Provider
+final updateProfileProvider =
+    FutureProvider.autoDispose.family<String, UserProfile>((ref, profile) {
+  final repo = ref.watch(profileRepositoryProvider);
+  return repo.updateUserProfile(profile);
+});

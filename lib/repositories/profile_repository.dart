@@ -48,17 +48,16 @@ class ProfileRepository {
     }
   }
 
-  /// 🔹 Insert Profile (Insert Action)
-  Future<String> saveUserProfile(UserProfile profile, String action) async {
-    // action: "I" for insert, "U" for update
-    final String url = "${ApiEndpoints.userProfile}?action=$action";
+  /// 🔹 Insert New Profile
+  Future<String> insertUserProfile(UserProfile profile) async {
+    final String url = "${ApiEndpoints.userProfile}?action=I";
 
     final body = {
       "userprofileDet": [profile.toJson()],
     };
 
-    print("📡 Profile API URL: ${_dio.options.baseUrl}$url");
-    print("📦 Payload: ${jsonEncode(body)}");
+    print("📡 Insert API URL: ${_dio.options.baseUrl}$url");
+    print("📦 Insert Payload: ${jsonEncode(body)}");
 
     try {
       final response = await _dio.post(
@@ -67,17 +66,59 @@ class ProfileRepository {
         options: Options(headers: {'Content-Type': 'application/json'}),
       );
 
-      print("✅ API Response Status: ${response.statusCode}");
-      print("📦 API Response Data: ${response.data}");
+      print("✅ Insert Response: ${response.data}");
 
       if (response.statusCode == 200) {
-        return response.data.toString();
+        final data = response.data is String
+            ? jsonDecode(response.data)
+            : response.data;
+
+        return data["status"] == "success"
+            ? "Insert Successfully"
+            : data["message"] ?? "Insert Failed";
       } else {
-        throw Exception('Failed to save profile: ${response.statusCode}');
+        throw Exception("Insert failed: ${response.statusCode}");
       }
     } catch (e) {
-      print("❌ Error saving profile: $e");
-      throw Exception('Error saving profile: $e');
+      print("❌ Error inserting profile: $e");
+      throw Exception("Error inserting profile: $e");
+    }
+  }
+
+  /// 🔹 Update Existing Profile
+  Future<String> updateUserProfile(UserProfile profile) async {
+    final String url = "${ApiEndpoints.userProfile}?action=U";
+
+    final body = {
+      "userprofileupdate": [profile.toJson()],
+    };
+
+    print("📡 Update API URL: ${_dio.options.baseUrl}$url");
+    print("📦 Update Payload: ${jsonEncode(body)}");
+
+    try {
+      final response = await _dio.post(
+        url,
+        data: jsonEncode(body),
+        options: Options(headers: {'Content-Type': 'application/json'}),
+      );
+
+      print("✅ Update Response: ${response.data}");
+
+      if (response.statusCode == 200) {
+        final data = response.data is String
+            ? jsonDecode(response.data)
+            : response.data;
+
+        return data["status"] == "success"
+            ? "Updated Successfully"
+            : data["message"] ?? "Update Failed";
+      } else {
+        throw Exception("Update failed: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Error updating profile: $e");
+      throw Exception("Error updating profile: $e");
     }
   }
 }

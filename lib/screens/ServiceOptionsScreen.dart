@@ -1,4 +1,5 @@
-import 'package:bneeds_taxi_customer/providers/location_provider.dart' show fromLocationProvider, toLocationProvider;
+import 'package:bneeds_taxi_customer/providers/location_provider.dart'
+    show fromLocationProvider, toLocationProvider;
 import 'package:bneeds_taxi_customer/providers/vehicle_subtype_provider.dart';
 import 'package:bneeds_taxi_customer/screens/ConfirmRideScreen.dart';
 import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
@@ -6,20 +7,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-
 class ServiceOptionsScreen extends ConsumerWidget {
   final String vehTypeId;
-  const ServiceOptionsScreen({super.key, required this.vehTypeId});
+  final String totalKms;
+  final String estTime;
 
+  const ServiceOptionsScreen({
+    super.key,
+    required this.vehTypeId,
+    required this.totalKms,
+    required this.estTime,
+  });
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedService = ref.watch(selectedServiceProvider);
-    final subTypesAsync = ref.watch(vehicleSubTypeProvider(vehTypeId));
+    final subTypesAsync = ref.watch(
+      vehicleSubTypeProvider((vehTypeId, totalKms)),
+    );
+
     final fromLocation = ref.watch(fromLocationProvider);
     final toLocation = ref.watch(toLocationProvider);
 
     return MainScaffold(
-         title:("Choose a Service"),
+      title: ("Choose a Service"),
       body: subTypesAsync.when(
         data: (subTypes) {
           return Column(
@@ -59,22 +69,22 @@ class ServiceOptionsScreen extends ConsumerWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final item = subTypes[index];
-                    final isSelected = selectedService?['id'] == item.vehSubTypeId;
+                    final selected = ref.watch(selectedServiceProvider);
 
-                    // Simulate distance and duration (replace with Google API later)
-                    double distanceKm = 12.5 + index; // example km
-                    int durationMin = 15 + index * 2; // example minutes
-                    final dropTime = DateTime.now().add(Duration(minutes: durationMin));
-                    final formattedDropTime = DateFormat.jm().format(dropTime);
+                    // Check if this item is selected
+                    final isSelected =
+                        selected != null &&
+                        selected['typeId'] == item.vehSubTypeId;
 
                     return GestureDetector(
                       onTap: () {
+                        // Update selectedService in provider
                         ref.read(selectedServiceProvider.notifier).state = {
-                          'id': item.vehSubTypeId,
+                          'typeId': item.vehSubTypeId,
                           'type': item.vehSubTypeName,
-                          'price': item.price ?? '0',
-                          'distanceKm': distanceKm,
-                          'durationMin': durationMin,
+                          'price': item.totalKms ?? '0',
+                          'distanceKm': totalKms,
+                          'durationMin': estTime, 
                         };
                       },
                       child: Container(
@@ -89,27 +99,38 @@ class ServiceOptionsScreen extends ConsumerWidget {
                               color: Colors.black.withOpacity(0.05),
                               blurRadius: 6,
                               offset: const Offset(0, 2),
-                            )
+                            ),
                           ],
                         ),
                         child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           leading: CircleAvatar(
                             backgroundColor: Colors.deepPurple.shade100,
-                            child: const Icon(Icons.local_taxi, color: Colors.deepPurple),
+                            child: const Icon(
+                              Icons.local_taxi,
+                              color: Colors.deepPurple,
+                            ),
                           ),
-                          title: Text(item.vehSubTypeName ?? '',
-                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 4.0),
-                            child: Text(
-                              "Distance: ${distanceKm.toStringAsFixed(1)} km · Est. Drop: $formattedDropTime",
-                              style: const TextStyle(fontSize: 13, color: Colors.black54),
+                          title: Text(
+                            item.vehSubTypeName ?? '',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 17,
+                            ),
+                          ),
+                          subtitle: Text(
+                            "Distance: $totalKms km · Est. Drop: $estTime",
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.black54,
                             ),
                           ),
                           trailing: Text(
-                            "₹${item.price ?? '0'}",
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                            "₹${item.totalKms ?? '0'}",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
                           ),
                         ),
                       ),
@@ -126,9 +147,13 @@ class ServiceOptionsScreen extends ConsumerWidget {
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: selectedService != null ? Colors.deepPurple : Colors.grey,
+                        backgroundColor: selectedService != null
+                            ? Colors.deepPurple
+                            : Colors.grey,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       onPressed: selectedService == null
                           ? null
@@ -142,12 +167,16 @@ class ServiceOptionsScreen extends ConsumerWidget {
                             },
                       child: const Text(
                         "Book Ride",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white70),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white70,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              )
+              ),
             ],
           );
         },

@@ -10,7 +10,7 @@ import 'package:bneeds_taxi_customer/screens/ServiceOptionsScreen.dart';
 import 'package:bneeds_taxi_customer/screens/TrackingScreen.dart';
 import 'package:bneeds_taxi_customer/screens/WalletScreen.dart';
 import 'package:go_router/go_router.dart';
-import '../screens/customize_home.dart';
+import '../screens/home/customize_home.dart';
 import '../screens/login_screen.dart';
 import '../screens/splash_screen.dart';
 
@@ -19,7 +19,7 @@ final GoRouter router = GoRouter(
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
     GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-  //  GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
+    //  GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
     GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
     GoRoute(
       path: '/select-location',
@@ -32,8 +32,20 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/service-options',
       builder: (context, state) {
-        final vehTypeId = state.extra as String;
-        return ServiceOptionsScreen(vehTypeId: vehTypeId);
+        final extra = state.extra;
+        if (extra is! Map<String, dynamic>) {
+          throw Exception('Expected a Map<String, dynamic> in state.extra');
+        }
+
+        final vehTypeId = extra['vehTypeId'] as String;
+        final totalKms = extra['totalKms'].toString(); // ensure string
+        final estTime = extra['estTime'].toString();
+
+        return ServiceOptionsScreen(
+          vehTypeId: vehTypeId,
+          totalKms: totalKms,
+          estTime: estTime,
+        );
       },
     ),
 
@@ -66,12 +78,11 @@ final GoRouter router = GoRouter(
       path: '/my-rides',
       builder: (context, state) => const MyRidesScreen(),
     ),
-  GoRoute(
-  path: '/profile',
-  builder: (context, state) {
-    return const ProfileScreen();
-  },
-),
-
+    GoRoute(
+      path: '/profile',
+      builder: (context, state) {
+        return const ProfileScreen();
+      },
+    ),
   ],
 );

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bneeds_taxi_customer/config/auth_service.dart' as authService;
 import 'package:bneeds_taxi_customer/repositories/profile_repository.dart';
 import 'package:flutter/gestures.dart';
@@ -202,33 +204,81 @@ class _OTPDialogState extends State<OTPDialog> {
     4,
     (_) => TextEditingController(),
   );
-
   final List<FocusNode> focusNodes = List.generate(4, (_) => FocusNode());
 
+  int _secondsRemaining = 180; // 3 minutes timer
+  Timer? _timer;
+  bool _showResend = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _secondsRemaining = 180;
+    _showResend = false;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsRemaining > 0) {
+        setState(() {
+          _secondsRemaining--;
+        });
+      } else {
+        setState(() {
+          _showResend = true;
+        });
+        timer.cancel();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    for (var c in otpControllers) {
+      c.dispose();
+    }
+    for (var f in focusNodes) {
+      f.dispose();
+    }
+    _timer?.cancel();
+    super.dispose();
+  }
+
   /// Save mobileno in SharedPreferences
-  Future<void> _saveMobileNo(String mobileno) async {
+  Future<void> _saveMobileNo(
+    String mobileno,
+    String username,
+    bool isProfileCompleted,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('mobileno', mobileno);
-    print("📦 Mobile number saved in session: $mobileno");
+    await prefs.setString('username', username);
+    await prefs.setBool('isProfileCompleted', isProfileCompleted);
+    print(
+      "📦 Mobile number saved: $mobileno | ProfileCompleted: $isProfileCompleted",
+    );
   }
 
   void _submitOTP() async {
     final otp = otpControllers.map((c) => c.text).join();
     if (otp.length == 4) {
       try {
-        final mobileNo = widget.ref.read(mobileProvider); // From your provider
+        final username = widget.ref.read(usernameProvider);
+        final mobileNo = widget.ref.read(mobileProvider);
         final profileRepo = ProfileRepository();
 
         final userExists = await authService.verifyOTPAndCheckUser(
           ref: widget.ref,
           otp: otp,
-          username: "",
+          username: username,
           mobileNo: mobileNo,
           profileRepo: profileRepo,
         );
 
-        // ✅ Save mobile number in SharedPreferences
-        await _saveMobileNo(mobileNo);
+        // ✅ Save with isProfileCompleted
+        await _saveMobileNo(mobileNo, username, userExists);
 
         Navigator.pop(context); // close OTP dialog
         print("User exists: $userExists");
@@ -251,6 +301,9 @@ class _OTPDialogState extends State<OTPDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final minutes = (_secondsRemaining ~/ 60).toString().padLeft(2, '0');
+    final seconds = (_secondsRemaining % 60).toString().padLeft(2, '0');
+
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: const Center(
@@ -258,7 +311,7 @@ class _OTPDialogState extends State<OTPDialog> {
       ),
       contentPadding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       content: SizedBox(
-        height: 160,
+        height: 220,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -293,9 +346,13 @@ class _OTPDialogState extends State<OTPDialog> {
                     ),
                     onChanged: (value) {
                       if (value.isNotEmpty && index < 3) {
-                        FocusScope.of(context).requestFocus(focusNodes[index + 1]);
+                        FocusScope.of(
+                          context,
+                        ).requestFocus(focusNodes[index + 1]);
                       } else if (value.isEmpty && index > 0) {
-                        FocusScope.of(context).requestFocus(focusNodes[index - 1]);
+                        FocusScope.of(
+                          context,
+                        ).requestFocus(focusNodes[index - 1]);
                       } else if (index == 3 && value.isNotEmpty) {
                         _submitOTP();
                       }
@@ -305,10 +362,51 @@ class _OTPDialogState extends State<OTPDialog> {
               }),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               "Enter the 4-digit OTP sent to your number.",
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
+            const SizedBox(height: 12),
+            _showResend
+                ? TextButton(
+                    onPressed: () async {
+                      print("🔁 Resend OTP triggered");
+
+                      final mobileNo = widget.ref.read(mobileProvider);
+
+                      // 🔹 API call to resend OTP
+                      await authService.sendOTP(
+                        ref: widget.ref,
+                        phoneNumber: mobileNo,
+                        onCodeSent: () {
+                          print("✅ OTP resent successfully");
+                          _startTimer(); // restart timer after resend
+                        },
+                        onError: (error) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(error),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    child: const Text(
+                      "Resend OTP",
+                      style: TextStyle(
+                        color: Colors.deepPurple,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                : Text(
+                    "Expires in $minutes:$seconds",
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ],
         ),
       ),

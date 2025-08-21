@@ -5,6 +5,7 @@ import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Providers with default current date & time
 final selectedServiceProvider = StateProvider<Map<String, dynamic>?>((ref) => null);
@@ -34,23 +35,30 @@ class ConfirmRideScreen extends ConsumerWidget {
   Future<void> _confirmBooking() async {
   final repository = ref.read(bookingRepositoryProvider);
 
-  final booking = BookingModel(
-    userid: "1",
-    mobileNo: "9876543210",
-    riderId: "",
-    bookDate: DateTime.now().toIso8601String(), 
-    scheduled: "Y", 
-    rideDate: "${selectedDate!.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}", // yyyy-MM-dd
-    pickupLocation: pickupAddress,
-    dropLocation: dropAddress,
-    mapLoc: "",
-    distance: selected['distance']?.toString() ?? "0", 
-    fareAmount: selected['price'] ?? "0",
-    vehSubTypeId: selected['vehSubTypeId']?.toString() ?? "0",
-    bookStatus: "B", 
-    paymentMethod: "Cash",
-    driverRate: "0", 
-  );
+
+final prefs = await SharedPreferences.getInstance();
+
+
+final userId = prefs.getString('userid') ?? "";
+final mobileNo = prefs.getString('mobileno') ?? "";
+
+final booking = BookingModel(
+  userid: userId,
+  mobileNo: mobileNo,
+  riderId: "",
+  bookDate: DateTime.now().toIso8601String(), 
+  scheduled: "Y", 
+  rideDate: "${selectedDate!.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}", // yyyy-MM-dd
+  pickupLocation: pickupAddress,
+  dropLocation: dropAddress,
+  mapLoc: "",
+  distance: selected['distanceKm']?.toString() ?? "0", 
+  fareAmount: selected['price'] ?? "0",
+  vehSubTypeId: selected['typeId']?.toString() ?? "0",
+  bookStatus: "B", 
+  paymentMethod: "Cash",
+  driverRate: "0", 
+);
 
   // Show loading
   showDialog(
@@ -109,8 +117,10 @@ class ConfirmRideScreen extends ConsumerWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
+                    // ref.read(selectedServiceProvider.notifier).state = null;
+                    // context.go('/searching');
                     ref.read(selectedServiceProvider.notifier).state = null;
-                    context.go('/searching');
+                    context.go('/home');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepPurple,

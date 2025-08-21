@@ -1,4 +1,5 @@
 class UserProfile {
+    final String userid;
   final String userName;
   final String mobileNo;
   final String password;
@@ -10,6 +11,7 @@ class UserProfile {
   final String city;
 
   UserProfile({
+    required this.userid,
     required this.userName,
     required this.mobileNo,
     required this.password,
@@ -23,6 +25,7 @@ class UserProfile {
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
+      userid: json['userid'] ?? '',
       userName: json['userName'] ?? '',
       mobileNo: json['mobileno'] ?? '',
       password: json['Password'] ?? '',
@@ -37,6 +40,7 @@ class UserProfile {
 
   Map<String, dynamic> toJson() {
     return {
+      "userid": userid,
       "userName": userName,
       "mobileno": mobileNo,
       "password": password,

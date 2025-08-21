@@ -17,23 +17,29 @@ class _SplashScreenState extends State<SplashScreen> {
     _checkSession();
   }
 
-  Future<void> _checkSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    final mobileNo = prefs.getString(
-      'mobileno',
-    ); // Key used for storing mobile number
-    print("Mobile No: $mobileNo");
-    // Delay to show splash for at least 3 seconds
-    await Future.delayed(const Duration(seconds: 3));
+ Future<void> _checkSession() async {
+  final prefs = await SharedPreferences.getInstance();
+  final mobileNo = prefs.getString('mobileno');
+  final isProfileCompleted = prefs.getBool('isProfileCompleted') ?? false;
 
-    if (!mounted) return; // Ensure widget is still in tree
+  print("📦 Mobile No: $mobileNo | ProfileCompleted: $isProfileCompleted");
 
-    if (mobileNo != null && mobileNo.isNotEmpty) {
+  // Delay to show splash for at least 3 seconds
+  await Future.delayed(const Duration(seconds: 3));
+
+  if (!mounted) return; // Ensure widget is still in tree
+
+  if (mobileNo != null && mobileNo.isNotEmpty) {
+    if (isProfileCompleted) {
       context.go('/home');
     } else {
-      context.go('/login');
+      context.go('/profile');
     }
+  } else {
+    context.go('/login');
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

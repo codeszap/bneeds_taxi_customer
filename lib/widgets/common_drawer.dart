@@ -1,53 +1,92 @@
+import 'package:bneeds_taxi_customer/providers/profile_provider.dart';
+import 'package:bneeds_taxi_customer/screens/ProfileScreen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CommonDrawer extends StatelessWidget {
   const CommonDrawer({super.key});
 
+  Future<Map<String, String>> _loadSessionData() async {
+    final prefs = await SharedPreferences.getInstance();
+    return {
+      "username": prefs.getString('username') ?? "Guest",
+      "mobileno": prefs.getString('mobileno') ?? "N/A",
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            color: Colors.deepPurple,
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                Row(
+          FutureBuilder<Map<String, String>>(
+            future: _loadSessionData(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return Container(
+                  padding: const EdgeInsets.all(20),
+                  color: Colors.deepPurple,
+                  child: const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
+                );
+              }
+
+              final user = snapshot.data!;
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 20,
+                ),
+                color: Colors.deepPurple,
+                child: Column(
                   children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Colors.deepPurple.shade50,
-                      child: const Icon(Icons.person, size: 30, color: Colors.black),
-                    ),
-                    const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          "Bneeds",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Colors.deepPurple.shade50,
+                          child: const Icon(
+                            Icons.person,
+                            size: 30,
+                            color: Colors.black,
                           ),
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          "bneeds@domain.com",
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user["username"]!,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              user["mobileno"]!,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
+                    const SizedBox(height: 20),
                   ],
                 ),
-                const SizedBox(height: 20),
-              ],
-            ),
+              );
+            },
           ),
+
+          // ✅ Rest of drawer items
           _buildDrawerItem(
             icon: Icons.dashboard,
             title: "Dashboard",
@@ -88,7 +127,10 @@ class CommonDrawer extends StatelessWidget {
               context.push('/wallet');
             },
           ),
+
           const Spacer(),
+
+          // ✅ Logout button same as before
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: ElevatedButton.icon(
@@ -104,8 +146,14 @@ class CommonDrawer extends StatelessWidget {
               ),
               onPressed: () async {
                 final prefs = await SharedPreferences.getInstance();
-                await prefs.clear(); // Clear session
-                context.go('/login'); // Go to login and clear navigation history
+                await prefs.clear();
+
+                if (context.mounted) {
+                  final container = ProviderScope.containerOf(context);
+                  container.invalidate(credentialsProvider);
+                  container.invalidate(fetchProfileProvider);
+                  context.go('/login');
+                }
               },
             ),
           ),
