@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "180489644998",
-    "project_id": "bneeds-taxi-customer",
-    "storage_bucket": "bneeds-taxi-customer.firebasestorage.app"
+    "project_number": "890933439894",
+    "project_id": "bneeds-taxi-customer-b14a9",
+    "storage_bucket": "bneeds-taxi-customer-b14a9.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:180489644998:android:8185df11dc1f8843abe0c7",
+        "mobilesdk_app_id": "1:890933439894:android:3014735612143f2e5ac1b7",
         "android_client_info": {
           "package_name": "com.example.bneeds_taxi_customer"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAy0Zc_vpHZxtJ8oAVZFAJWuxb4oNyTduI"
+          "current_key": "AIzaSyBYxwbgy3KROItbjfCfsVzhbVWREDWHUEE"
         }
       ],
       "services": {

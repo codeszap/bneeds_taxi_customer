@@ -9,6 +9,7 @@ class UserProfile {
   final String address2;
   final String address3;
   final String city;
+  final String tokenkey;
 
   UserProfile({
     required this.userid,
@@ -21,6 +22,7 @@ class UserProfile {
     required this.address2,
     required this.address3,
     required this.city,
+    required this.tokenkey,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -35,6 +37,7 @@ class UserProfile {
       address2: json['Address2'] ?? '',
       address3: json['Address3'] ?? '',
       city: json['City'] ?? '',
+       tokenkey: json['tokenkey'] ?? '',
     );
   }
 
@@ -50,6 +53,7 @@ class UserProfile {
       "address2": address2,
       "address3": address3,
       "city": city,
+      "tokenkey": tokenkey,
     };
   }
 }

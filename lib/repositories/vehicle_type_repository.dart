@@ -34,7 +34,7 @@ Future<List<VehicleTypeModel>> fetchVehicleTypes() async {
 Future<List<VehicleSubType>> fetchVehicleSubTypes(String vehTypeId, String totalKms) async {
   final res = await _client.get(
     ApiEndpoints.vehicleSubType,
-    queryParameters: {'action': 'D', 'VehTypeid': vehTypeId, 'TotalKms': totalKms},
+    queryParameters: {'action': 'D', 'VehTypeid': vehTypeId, 'TotalKm': totalKms},
   );
 
   dynamic data = res.data;

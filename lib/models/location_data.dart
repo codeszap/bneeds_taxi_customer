@@ -1,13 +1,6 @@
-class LocationData {
-  final String address;
-  final double lat;
-  final double lng;
+class LatLng {
+  final double latitude;
+  final double longitude;
 
-  LocationData({
-    required this.address,
-    required this.lat,
-    required this.lng,
-  });
-
-  bool get isEmpty => address.isEmpty && lat == 0 && lng == 0;
+  LatLng({required this.latitude, required this.longitude});
 }

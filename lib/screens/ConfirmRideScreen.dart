@@ -7,11 +7,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Providers with default current date & time
-final selectedServiceProvider = StateProvider<Map<String, dynamic>?>((ref) => null);
 final selectedDateProvider = StateProvider<DateTime?>((ref) => DateTime.now());
-final selectedTimeProvider = StateProvider<TimeOfDay?>((ref) => TimeOfDay.now());
-final bookingRepositoryProvider = Provider<BookingRepository>((ref) => BookingRepository());
+final selectedTimeProvider = StateProvider<TimeOfDay?>(
+  (ref) => TimeOfDay.now(),
+);
+final bookingRepositoryProvider = Provider<BookingRepository>(
+  (ref) => BookingRepository(),
+);
 
 class ConfirmRideScreen extends ConsumerWidget {
   const ConfirmRideScreen({super.key});
@@ -19,137 +21,151 @@ class ConfirmRideScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(selectedServiceProvider);
+    print("ConfirmRideScreen sees selectedServiceProvider: $selected");
+
     final selectedDate = ref.watch(selectedDateProvider);
     final selectedTime = ref.watch(selectedTimeProvider);
-
+    final fromPos = ref.read(fromLatLngProvider);
+    final toPos = ref.read(toLatLngProvider);
     final pickupLocation = ref.watch(fromLocationProvider);
     final dropLocation = ref.watch(toLocationProvider);
 
-    final pickupAddress = pickupLocation.isNotEmpty ? pickupLocation : "Not selected";
+    final pickupAddress = pickupLocation.isNotEmpty
+        ? pickupLocation
+        : "Not selected";
     final dropAddress = dropLocation.isNotEmpty ? dropLocation : "Not selected";
 
     if (selected == null) {
       return const Scaffold(body: Center(child: Text("No service selected")));
     }
 
-  Future<void> _confirmBooking() async {
-  final repository = ref.read(bookingRepositoryProvider);
+    Future<void> _confirmBooking() async {
+      final repository = ref.read(bookingRepositoryProvider);
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('userid') ?? "";
+      final mobileNo = prefs.getString('mobileno') ?? "";
 
+      final now = DateTime.now();
+      final bookDateStr =
+          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} "
+          "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
 
-final prefs = await SharedPreferences.getInstance();
+      final booking = BookingModel(
+        userid: userId,
+        mobileNo: mobileNo,
+        riderId: "",
+        bookDate: bookDateStr,
+        scheduled: "Y",
+        rideDate:
+            "${selectedDate!.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}", // yyyy-MM-dd
+        pickupLocation: pickupAddress,
+        dropLocation: dropAddress,
+        distance: selected['distanceKm']?.toString() ?? "0",
+        fareAmount: selected['price'] ?? "0",
+        vehSubTypeId: selected['typeId']?.toString() ?? "0",
+        bookStatus: "B",
+        paymentMethod: "Cash",
+        driverRate: "0",
+        fromLatLong: fromPos.toString(),
+        toLatLong: toPos.toString(),
+      );
 
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
 
-final userId = prefs.getString('userid') ?? "";
-final mobileNo = prefs.getString('mobileno') ?? "";
+      try {
+        // Call API
+        await repository.addBooking(booking);
+        print("Booking payload:");
+        print(booking.toMap());
 
-final booking = BookingModel(
-  userid: userId,
-  mobileNo: mobileNo,
-  riderId: "",
-  bookDate: DateTime.now().toIso8601String(), 
-  scheduled: "Y", 
-  rideDate: "${selectedDate!.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}", // yyyy-MM-dd
-  pickupLocation: pickupAddress,
-  dropLocation: dropAddress,
-  mapLoc: "",
-  distance: selected['distanceKm']?.toString() ?? "0", 
-  fareAmount: selected['price'] ?? "0",
-  vehSubTypeId: selected['typeId']?.toString() ?? "0",
-  bookStatus: "B", 
-  paymentMethod: "Cash",
-  driverRate: "0", 
-);
+        Navigator.pop(context); // remove loading
 
-  // Show loading
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => const Center(child: CircularProgressIndicator()),
-  );
-
-  try {
-    // Call API
-  await repository.addBooking(booking);
- print("Booking payload (simulate API):");
-    print(booking.toMap());
-    Navigator.pop(context); // Remove loading
-
-    // Show Ride Confirmed dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 30),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.deepPurple.shade50,
-                ),
-                child: const Icon(Icons.check_circle,
-                    size: 48, color: Colors.deepPurple),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "Ride Confirmed",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "Your ${selected['type']} is scheduled for "
-                "${selectedDate.day}/${selectedDate.month} at ${selectedTime!.format(context)}.\n"
-                "Pickup: $pickupAddress\nDrop: $dropAddress",
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: Colors.black87,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // ref.read(selectedServiceProvider.notifier).state = null;
-                    // context.go('/searching');
-                    ref.read(selectedServiceProvider.notifier).state = null;
-                    context.go('/home');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+        // Show Ride Confirmed dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 30),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.deepPurple.shade50,
+                    ),
+                    child: const Icon(
+                      Icons.check_circle,
+                      size: 48,
+                      color: Colors.deepPurple,
                     ),
                   ),
-                  child: Text(
-                    "OK",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.9),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Ride Confirmed",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "Your ${selected['type']} is scheduled for "
+                    "${selectedDate.day}/${selectedDate.month} at ${selectedTime!.format(context)}.\n"
+                    "Pickup: $pickupAddress\nDrop: $dropAddress",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Colors.black87,
+                      height: 1.4,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context); // Close the dialog
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        "OK",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
-  } catch (e) {
-    Navigator.pop(context); // Remove loading
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Failed to confirm ride: $e")),
-    );
-  }
-}
+        ).then((_) {
+          // Navigate home after dialog is dismissed
+          context.go('/home');
+        });
+      } catch (e) {
+        Navigator.pop(context); // Remove loading
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to confirm ride: $e")));
+      }
+    }
 
     return MainScaffold(
       title: "Confirm Ride",
@@ -170,14 +186,29 @@ final booking = BookingModel(
                   CircleAvatar(
                     radius: 22,
                     backgroundColor: Colors.deepPurple.shade100,
-                    child: Icon(selected['icon'] ?? Icons.local_taxi, color: Colors.deepPurple),
+                    child: Icon(
+                      selected['icon'] ?? Icons.local_taxi,
+                      color: Colors.deepPurple,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(selected['type'] ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                      Text(selected['price'] ?? '', style: const TextStyle(fontSize: 15, color: Colors.black54)),
+                      Text(
+                        selected['type'] ?? '',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        selected['price'] ?? '',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: Colors.black54,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -195,11 +226,35 @@ final booking = BookingModel(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: const [Icon(Icons.location_on, size: 18, color: Colors.green), SizedBox(width: 6), Text("Pickup Address", style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black54))]),
+                  Row(
+                    children: const [
+                      Icon(Icons.location_on, size: 18, color: Colors.green),
+                      SizedBox(width: 6),
+                      Text(
+                        "Pickup Address",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 4),
                   Text(pickupAddress, style: const TextStyle(fontSize: 16)),
                   const Divider(height: 30),
-                  Row(children: const [Icon(Icons.flag, size: 18, color: Colors.red), SizedBox(width: 6), Text("Drop Address", style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black54))]),
+                  Row(
+                    children: const [
+                      Icon(Icons.flag, size: 18, color: Colors.red),
+                      SizedBox(width: 6),
+                      Text(
+                        "Drop Address",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 4),
                   Text(dropAddress, style: const TextStyle(fontSize: 16)),
                 ],
@@ -207,7 +262,10 @@ final booking = BookingModel(
             ),
             const SizedBox(height: 30),
             // Date & Time Picker
-            const Text("Schedule Ride", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text(
+              "Schedule Ride",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -220,16 +278,36 @@ final booking = BookingModel(
                         firstDate: DateTime.now(),
                         lastDate: DateTime.now().add(const Duration(days: 30)),
                       );
-                      if (pickedDate != null) ref.read(selectedDateProvider.notifier).state = pickedDate;
+                      if (pickedDate != null)
+                        ref.read(selectedDateProvider.notifier).state =
+                            pickedDate;
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                      decoration: BoxDecoration(color: Colors.deepPurple.shade50, border: Border.all(color: Colors.deepPurple.shade100), borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple.shade50,
+                        border: Border.all(color: Colors.deepPurple.shade100),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       child: Row(
                         children: [
-                          const Icon(Icons.calendar_today, size: 20, color: Colors.deepPurple),
+                          const Icon(
+                            Icons.calendar_today,
+                            size: 20,
+                            color: Colors.deepPurple,
+                          ),
                           const SizedBox(width: 8),
-                          Expanded(child: Text(selectedDate != null ? "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}" : "Select Date", style: const TextStyle(fontSize: 14))),
+                          Expanded(
+                            child: Text(
+                              selectedDate != null
+                                  ? "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}"
+                                  : "Select Date",
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -239,17 +317,40 @@ final booking = BookingModel(
                 Expanded(
                   child: GestureDetector(
                     onTap: () async {
-                      final pickedTime = await showTimePicker(context: context, initialTime: selectedTime ?? TimeOfDay.now());
-                      if (pickedTime != null) ref.read(selectedTimeProvider.notifier).state = pickedTime;
+                      final pickedTime = await showTimePicker(
+                        context: context,
+                        initialTime: selectedTime ?? TimeOfDay.now(),
+                      );
+                      if (pickedTime != null)
+                        ref.read(selectedTimeProvider.notifier).state =
+                            pickedTime;
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                      decoration: BoxDecoration(color: Colors.deepPurple.shade50, border: Border.all(color: Colors.deepPurple.shade100), borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple.shade50,
+                        border: Border.all(color: Colors.deepPurple.shade100),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       child: Row(
                         children: [
-                          const Icon(Icons.access_time, size: 20, color: Colors.deepPurple),
+                          const Icon(
+                            Icons.access_time,
+                            size: 20,
+                            color: Colors.deepPurple,
+                          ),
                           const SizedBox(width: 8),
-                          Expanded(child: Text(selectedTime != null ? selectedTime.format(context) : "Select Time", style: const TextStyle(fontSize: 14))),
+                          Expanded(
+                            child: Text(
+                              selectedTime != null
+                                  ? selectedTime.format(context)
+                                  : "Select Time",
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -262,15 +363,34 @@ final booking = BookingModel(
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                icon: Icon(Icons.check_circle_outline, color: Colors.white.withOpacity(0.7), size: 20),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                icon: Icon(
+                  Icons.check_circle_outline,
+                  color: Colors.white.withOpacity(0.7),
+                  size: 20,
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 onPressed: () {
-                  if (pickupAddress == "Not selected" || dropAddress == "Not selected") {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select pickup & drop locations")));
+                  if (pickupAddress == "Not selected" ||
+                      dropAddress == "Not selected") {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Please select pickup & drop locations"),
+                      ),
+                    );
                     return;
                   }
                   if (selectedDate == null || selectedTime == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select date & time")));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Please select date & time"),
+                      ),
+                    );
                     return;
                   }
 
@@ -279,9 +399,14 @@ final booking = BookingModel(
                     context: context,
                     builder: (_) => AlertDialog(
                       title: const Text("Confirm Ride"),
-                      content: const Text("Are you sure you want to confirm this ride?"),
+                      content: const Text(
+                        "Are you sure you want to confirm this ride?",
+                      ),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(context), child: const Text("No")),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text("No"),
+                        ),
                         TextButton(
                           onPressed: () {
                             Navigator.pop(context); // Close confirmation
@@ -293,7 +418,14 @@ final booking = BookingModel(
                     ),
                   );
                 },
-                label: Text("Confirm Ride", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white.withOpacity(0.7))),
+                label: Text(
+                  "Confirm Ride",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white.withOpacity(0.7),
+                  ),
+                ),
               ),
             ),
           ],

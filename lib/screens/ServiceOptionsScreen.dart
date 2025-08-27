@@ -1,5 +1,5 @@
 import 'package:bneeds_taxi_customer/providers/location_provider.dart'
-    show fromLocationProvider, toLocationProvider;
+    show fromLocationProvider, toLocationProvider, selectedServiceProvider;
 import 'package:bneeds_taxi_customer/providers/vehicle_subtype_provider.dart';
 import 'package:bneeds_taxi_customer/screens/ConfirmRideScreen.dart';
 import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
@@ -35,33 +35,7 @@ class ServiceOptionsScreen extends ConsumerWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Pickup & Drop locations
-              // Container(
-              //   width: double.infinity,
-              //   padding: const EdgeInsets.all(16),
-              //   color: Colors.grey[100],
-              //   child: Column(
-              //     crossAxisAlignment: CrossAxisAlignment.start,
-              //     children: [
-              //       const Text(
-              //         "Pick-up Location",
-              //         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              //       ),
-              //       const SizedBox(height: 4),
-              //       Text(fromLocation, style: const TextStyle(fontSize: 15)),
-              //       const SizedBox(height: 12),
-              //       const Text(
-              //         "Drop-off Location",
-              //         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              //       ),
-              //       const SizedBox(height: 4),
-              //       Text(toLocation, style: const TextStyle(fontSize: 15)),
-              //     ],
-              //   ),
-              // ),
-              // const SizedBox(height: 10),
-
-              // List of vehicle subtypes
+          
               Expanded(
                 child: ListView.separated(
                   padding: const EdgeInsets.all(10),

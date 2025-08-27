@@ -7,13 +7,14 @@ class BookingModel {
   final String rideDate;
   final String pickupLocation;
   final String dropLocation;
-  final String mapLoc;
   final String distance;
   final String fareAmount;
   final String vehSubTypeId;
   final String bookStatus;
   final String paymentMethod;
   final String driverRate;
+  final String fromLatLong ;
+  final String toLatLong ;
 
   BookingModel({
     required this.userid,
@@ -24,13 +25,14 @@ class BookingModel {
     required this.rideDate,
     required this.pickupLocation,
     required this.dropLocation,
-    required this.mapLoc,
     required this.distance,
     required this.fareAmount,
     required this.vehSubTypeId,
     required this.bookStatus,
     required this.paymentMethod,
     required this.driverRate,
+    required this.fromLatLong,
+    required this.toLatLong,
   });
 
   Map<String, dynamic> toMap() {
@@ -43,13 +45,14 @@ class BookingModel {
       "rideDate": rideDate,
       "pickupLocation": pickupLocation,
       "dropLocation": dropLocation,
-      "mapLoc": mapLoc,
       "distance": distance,
       "fareAmount": fareAmount,
       "VehSubTypeid": vehSubTypeId,
       "BookStatus": bookStatus,
       "paymentMethod": paymentMethod,
       "DriverRate": driverRate,
+      "FromLatLong ": fromLatLong,
+      "ToLatLong ": toLatLong,
     };
   }
 }

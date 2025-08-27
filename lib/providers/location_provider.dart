@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
+import '../screens/home/customize_home.dart';
+
 
 // Recent locations
 final recentLocationsProvider =
@@ -15,24 +17,30 @@ final recentLocationsProvider =
       (ref) => RecentLocationsNotifier(),
     );
 // ---- Google Suggestions Provider ----
-final placeSuggestionsProvider = FutureProvider.family<List<String>, String>((
-  ref,
-  query,
-) async {
+final placeSuggestionsProvider =
+FutureProvider.family<List<PlaceSuggestion>, String>((ref, query) async {
   if (query.isEmpty) return [];
+
   final url = Uri.parse(
-    "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${Uri.encodeComponent(query)}&key=${Strings.googleApiKey}&components=country:in",
+    "https://maps.googleapis.com/maps/api/place/autocomplete/json"
+        "?input=$query"
+        "&key=${Strings.googleApiKey}"
+        "&components=country:IN",
   );
+
   final response = await http.get(url);
-  final jsonBody = jsonDecode(response.body);
-  if (jsonBody["status"] == "OK") {
-    return (jsonBody["predictions"] as List)
-        .map((e) => e["description"] as String)
+  final data = jsonDecode(response.body);
+
+  if (data["status"] == "OK") {
+    final predictions = data["predictions"] as List;
+    return predictions
+        .map((p) => PlaceSuggestion.fromJson(p))
         .toList();
-  } else {
-    return [];
   }
+
+  return [];
 });
+
 
 final locationErrorDialogShownProvider = StateProvider<bool>((ref) => false);
 final selectedServiceProvider = StateProvider<Map<String, dynamic>?>((ref) => null);
@@ -41,8 +49,8 @@ final fromLocationProvider = StateProvider<String>((ref) => 'Current Locations')
 final toLocationProvider = StateProvider<String>((ref) => '');
 final placeQueryProvider = StateProvider<String>((ref) => '');
 
-// final fromLatLngProvider = StateProvider<LatLng?>((ref) => null);
-// final toLatLngProvider = StateProvider<LatLng?>((ref) => null);
+final fromLatLngProvider = StateProvider<Position?>((ref) => null);
+final toLatLngProvider = StateProvider<Position?>((ref) => null);
  
 
 final currentLocationProvider = FutureProvider<Position>((ref) async {
@@ -67,3 +75,32 @@ final currentLocationProvider = FutureProvider<Position>((ref) async {
     desiredAccuracy: LocationAccuracy.high,
   );
 });
+
+Future<Position?> getLatLngFromAddress(String placeId) async {
+  final url = Uri.parse(
+    "https://maps.googleapis.com/maps/api/place/details/json"
+        "?place_id=$placeId"
+        "&key=${Strings.googleApiKey}",
+  );
+
+  final response = await http.get(url);
+  final data = jsonDecode(response.body);
+
+  if (data["status"] == "OK") {
+    final location = data["result"]["geometry"]["location"];
+    return Position(
+      latitude: location["lat"],
+      longitude: location["lng"],
+      timestamp: DateTime.now(),
+      accuracy: 0.0,
+      altitude: 0.0,
+      heading: 0.0,
+      speed: 0.0,
+      speedAccuracy: 0.0,
+      altitudeAccuracy: 0.0,
+      headingAccuracy: 0.0,
+    );
+  }
+  return null;
+}
+

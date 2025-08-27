@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../widgets/common_drawer.dart';
 import '../models/user_profile_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 final sharedPrefsProvider = FutureProvider<SharedPreferences>((ref) async {
   return await SharedPreferences.getInstance();
@@ -36,13 +37,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     });
   }
 
-
   bool _isEditing = false;
   final _formKey = GlobalKey<FormState>(); // moved here ✅
 
   @override
   Widget build(BuildContext context) {
-        final username = ref.watch(usernameProvider);
+    final username = ref.watch(usernameProvider);
     final credsAsync = ref.watch(credentialsProvider);
 
     return credsAsync.when(
@@ -57,8 +57,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           fetchProfileProvider(creds['mobileno']!),
         );
 
-// print("📦 Fetched credentials: ${creds['mobileno']} | Username: $username");
-// print("📦 Profile async state: $profileAsync");
+        // print("📦 Fetched credentials: ${creds['mobileno']} | Username: $username");
+        // print("📦 Profile async state: $profileAsync");
         return Scaffold(
           backgroundColor: Colors.deepPurple.shade50,
           appBar: AppBar(
@@ -235,11 +235,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     String mobileNo,
     UserProfile? existingProfile,
   ) {
-     final username = ref.watch(usernameProvider); // ✅ read username from provider
+    final username = ref.watch(
+      usernameProvider,
+    ); // ✅ read username from provider
 
-  final nameController = TextEditingController(
-    text: existingProfile?.userName ?? username, // use provider value if available
-  );
+    final nameController = TextEditingController(
+      text:
+          existingProfile?.userName ??
+          username, // use provider value if available
+    );
 
     final genderValue = ValueNotifier<String>(
       existingProfile?.gender.isNotEmpty == true
@@ -285,9 +289,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             "M/d/yyyy h:mm:ss a",
           ).format(DateFormat("dd-MM-yyyy").parse(dobController.text));
         } catch (_) {}
-
+        // 🔥 Get FCM token here
+        final fcmToken = await FirebaseMessaging.instance.getToken();
+        print("🔥 Got FCM Token: $fcmToken");
         final newProfile = UserProfile(
-         userid: existingProfile?.userid ?? "",
+          userid: existingProfile?.userid ?? "",
           userName: nameController.text,
           password: "",
           mobileNo: mobileNo,
@@ -297,6 +303,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           address2: address2Controller.text,
           address3: address3Controller.text,
           city: cityController.text,
+          tokenkey:fcmToken.toString(),
+           //tokenkey: existingProfile?.tokenkey ?? "",
         );
 
         try {
