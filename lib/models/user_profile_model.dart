@@ -57,3 +57,50 @@ class UserProfile {
     };
   }
 }
+
+
+class DriverProfile {
+  final String riderName;
+  final String mobileNo;
+  final String vehSubTypeId;
+  final String riderStatus;
+  final String fromLatLong;
+  final String toLatLong;
+  final String tokenKey;
+
+  DriverProfile({
+    required this.riderName,
+    required this.mobileNo,
+    required this.vehSubTypeId,
+    required this.riderStatus,
+    required this.fromLatLong,
+    required this.toLatLong,
+    required this.tokenKey,
+  });
+
+  // Factory constructor to create DriverProfile from JSON
+  factory DriverProfile.fromJson(Map<String, dynamic> json) {
+    return DriverProfile(
+      riderName: json['RiderName'] ?? '',
+      mobileNo: json['MobileNo'] ?? '',
+      vehSubTypeId: json['VehsubTypeid'] ?? '',
+      riderStatus: json['riderstatus'] ?? '',
+      fromLatLong: json['FromLatLong'] ?? '',
+      toLatLong: json['ToLatLong'] ?? '',
+      tokenKey: json['tokenkey'] ?? '',
+    );
+  }
+
+  // Convert DriverProfile to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'RiderName': riderName,
+      'MobileNo': mobileNo,
+      'VehsubTypeid': vehSubTypeId,
+      'riderstatus': riderStatus,
+      'FromLatLong': fromLatLong,
+      'ToLatLong': toLatLong,
+      'tokenkey': tokenKey,
+    };
+  }
+}

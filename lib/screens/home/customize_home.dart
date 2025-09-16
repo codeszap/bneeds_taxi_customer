@@ -84,6 +84,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _fetchLocation();
+    Future.delayed(Duration(seconds: 2), () {
+      _fetchLocation();
+    });
     _loadSessionData();
   }
 
@@ -462,6 +465,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
               // Vehicle Subtypes
               if (_selectedVehicleType != null && _routeInfo != null)
+             
                 subTypesAsync().when(
                   data: (subTypes) {
                     if (subTypes.isEmpty) {

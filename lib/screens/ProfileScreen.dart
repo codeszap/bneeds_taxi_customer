@@ -292,6 +292,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         // 🔥 Get FCM token here
         final fcmToken = await FirebaseMessaging.instance.getToken();
         print("🔥 Got FCM Token: $fcmToken");
+
+            final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('fcmToken', fcmToken ?? '');
+
         final newProfile = UserProfile(
           userid: existingProfile?.userid ?? "",
           userName: nameController.text,

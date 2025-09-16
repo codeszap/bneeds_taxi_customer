@@ -48,7 +48,7 @@ class ProfileRepository {
     }
   }
 
-  /// 🔹 Insert New Profile
+
   Future<String> insertUserProfile(UserProfile profile) async {
     final String url = "${ApiEndpoints.userProfile}?action=I";
 
@@ -85,7 +85,6 @@ class ProfileRepository {
     }
   }
 
-  /// 🔹 Update Existing Profile
   Future<String> updateUserProfile(UserProfile profile) async {
     final String url = "${ApiEndpoints.userProfile}?action=U";
 
@@ -121,4 +120,46 @@ class ProfileRepository {
       throw Exception("Error updating profile: $e");
     }
   }
+
+
+Future<List<DriverProfile>> fetchDriverProfile({required String vehSubTypeId}) async {
+  final String url =
+      "${ApiEndpoints.driverProfile}?action=G&VehsubTypeid=$vehSubTypeId&riderstatus=OL";
+
+  print("📡 Fetch Driver Profile API URL: ${_dio.options.baseUrl}$url");
+
+  try {
+    final response = await _dio.get(url);
+
+    print("✅ Status: ${response.statusCode}");
+    print("📦 Data type: ${response.data.runtimeType}");
+    print("📦 Data: ${response.data}");
+
+    // Decode if response is a string
+    final data = response.data is String ? jsonDecode(response.data) : response.data;
+
+    if (response.statusCode == 200 && data is Map) {
+      final status = data['status']?.toString().toLowerCase();
+
+      if (status == 'error') {
+        print("⚠ No driver found: ${data['message']}");
+        return [];
+      }
+
+      if (status == 'success' && data['data'] is List) {
+        return (data['data'] as List)
+            .map((json) => DriverProfile.fromJson(json))
+            .toList();
+      }
+
+      throw Exception("Unexpected success response format");
+    } else {
+      throw Exception("Unexpected response format");
+    }
+  } catch (e) {
+    print("❌ Error fetching driver profile: $e");
+    throw Exception("Error fetching driver profile: $e");
+  }
+}
+
 }

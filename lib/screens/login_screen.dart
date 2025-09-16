@@ -5,6 +5,7 @@ import 'package:bneeds_taxi_customer/repositories/profile_repository.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -16,11 +17,64 @@ final usernameProvider = StateProvider<String>((ref) => '');
 final mobileProvider = StateProvider<String>((ref) => '');
 final isLoadingProvider = StateProvider<bool>((ref) => false);
 
-class LoginScreen extends ConsumerWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _checkLocationEnabled();
+  }
+
+  Future<void> _checkLocationEnabled() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+    if (!serviceEnabled && mounted) {
+      _showLocationDialog();
+    }
+  }
+
+  void _showLocationDialog() {
+    showDialog(
+      barrierDismissible: false, // ❌ user can't dismiss
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          "Location Required",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "Please turn on location services to continue using the app.",
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await Geolocator.openLocationSettings();
+              Navigator.of(context).pop();
+              _checkLocationEnabled(); // re-check after returning
+            },
+            child: const Text(
+              "Turn On",
+              style: TextStyle(
+                color: Colors.deepPurple,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
     final username = ref.watch(usernameProvider);
     final mobile = ref.watch(mobileProvider);
     final isFormValid = username.isNotEmpty && mobile.length == 10;
@@ -311,7 +365,7 @@ class _OTPDialogState extends State<OTPDialog> {
       ),
       contentPadding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       content: SizedBox(
-        height: 220,
+        height: 150,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [

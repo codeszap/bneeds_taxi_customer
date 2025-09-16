@@ -4,5 +4,6 @@ class ApiEndpoints {
    static const String vehicleSubType = 'frmVehTariffApi.aspx';
    //static const String vehicleSubType = 'frmVehSubTypeMasterApi.aspx';
    static const String userProfile = "frmUserProfileInsertApi.aspx";
+      static const String driverProfile = "frmRiderProfileApi.aspx";
    static const String bookingRide = "frmvehBookingApi.aspx";
 }

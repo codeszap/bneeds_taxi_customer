@@ -7,6 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// add this provider (above ConfirmRideScreen)
+final selectedPaymentProvider = StateProvider<String>((ref) => "Cash");
+
 final selectedDateProvider = StateProvider<DateTime?>((ref) => DateTime.now());
 final selectedTimeProvider = StateProvider<TimeOfDay?>(
   (ref) => TimeOfDay.now(),
@@ -29,7 +32,7 @@ class ConfirmRideScreen extends ConsumerWidget {
     final toPos = ref.read(toLatLngProvider);
     final pickupLocation = ref.watch(fromLocationProvider);
     final dropLocation = ref.watch(toLocationProvider);
-
+    bool _isBooking = false;
     final pickupAddress = pickupLocation.isNotEmpty
         ? pickupLocation
         : "Not selected";
@@ -40,6 +43,9 @@ class ConfirmRideScreen extends ConsumerWidget {
     }
 
     Future<void> _confirmBooking() async {
+      if (_isBooking) return;
+      _isBooking = true;
+
       final repository = ref.read(bookingRepositoryProvider);
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('userid') ?? "";
@@ -49,7 +55,7 @@ class ConfirmRideScreen extends ConsumerWidget {
       final bookDateStr =
           "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} "
           "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
-
+      final selectedPayment = ref.read(selectedPaymentProvider);
       final booking = BookingModel(
         userid: userId,
         mobileNo: mobileNo,
@@ -57,15 +63,15 @@ class ConfirmRideScreen extends ConsumerWidget {
         bookDate: bookDateStr,
         scheduled: "Y",
         rideDate:
-            "${selectedDate!.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}", // yyyy-MM-dd
+            "${selectedDate!.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}",
         pickupLocation: pickupAddress,
         dropLocation: dropAddress,
         distance: selected['distanceKm']?.toString() ?? "0",
         fareAmount: selected['price'] ?? "0",
         vehSubTypeId: selected['typeId']?.toString() ?? "0",
         bookStatus: "B",
-        paymentMethod: "Cash",
-        driverRate: "0",
+        paymentMethod: selectedPayment,
+        driverRate: "",
         fromLatLong: fromPos.toString(),
         toLatLong: toPos.toString(),
       );
@@ -79,91 +85,31 @@ class ConfirmRideScreen extends ConsumerWidget {
 
       try {
         // Call API
-        await repository.addBooking(booking);
-        print("Booking payload:");
-        print(booking.toMap());
+        final bookingId = await repository.addBooking(booking);
 
         Navigator.pop(context); // remove loading
 
-        // Show Ride Confirmed dialog
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            insetPadding: const EdgeInsets.symmetric(horizontal: 30),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.deepPurple.shade50,
-                    ),
-                    child: const Icon(
-                      Icons.check_circle,
-                      size: 48,
-                      color: Colors.deepPurple,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Ride Confirmed",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    "Your ${selected['type']} is scheduled for "
-                    "${selectedDate.day}/${selectedDate.month} at ${selectedTime!.format(context)}.\n"
-                    "Pickup: $pickupAddress\nDrop: $dropAddress",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Colors.black87,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context); // Close the dialog
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurple,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        "OK",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white.withOpacity(0.9),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ).then((_) {
-          // Navigate home after dialog is dismissed
-          context.go('/home');
-        });
+        if (bookingId != null) {
+          print("Booking successful, ID = $bookingId");
+
+          // bookingId save பண்ணிக்கலாம் future use காக
+          await prefs.setString("lastBookingId", bookingId.toString());
+
+          // ✅ Booking successful → Searching screen
+          context.go('/searching');
+        } else {
+          print("Booking failed!");
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Booking failed. Please try again.")),
+          );
+        }
       } catch (e) {
         Navigator.pop(context); // Remove loading
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Failed to confirm ride: $e")));
+      } finally {
+        _isBooking = false; // 👈 reset flag after API call
       }
     }
 
@@ -203,7 +149,7 @@ class ConfirmRideScreen extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        selected['price'] ?? '',
+                        "₹ ${selected['price'] ?? ''}",
                         style: const TextStyle(
                           fontSize: 15,
                           color: Colors.black54,
@@ -358,6 +304,92 @@ class ConfirmRideScreen extends ConsumerWidget {
                 ),
               ],
             ),
+            // Payment Option Section
+            const SizedBox(height: 30),
+            const Text(
+              "Payment Option",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+
+            Consumer(
+              builder: (context, ref, _) {
+                final selectedPayment = ref.watch(selectedPaymentProvider);
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () =>
+                            ref.read(selectedPaymentProvider.notifier).state =
+                                "Cash",
+                        child: Row(
+                          children: [
+                            Radio<String>(
+                              value: "Cash",
+                              groupValue: selectedPayment,
+                              onChanged: (val) {
+                                ref
+                                        .read(selectedPaymentProvider.notifier)
+                                        .state =
+                                    val!;
+                              },
+                            ),
+                            const Text("Cash"),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () =>
+                            ref.read(selectedPaymentProvider.notifier).state =
+                                "UPI",
+                        child: Row(
+                          children: [
+                            Radio<String>(
+                              value: "UPI",
+                              groupValue: selectedPayment,
+                              onChanged: (val) {
+                                ref
+                                        .read(selectedPaymentProvider.notifier)
+                                        .state =
+                                    val!;
+                              },
+                            ),
+                            const Text("UPI"),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () =>
+                            ref.read(selectedPaymentProvider.notifier).state =
+                                "Card",
+                        child: Row(
+                          children: [
+                            Radio<String>(
+                              value: "Card",
+                              groupValue: selectedPayment,
+                              onChanged: (val) {
+                                ref
+                                        .read(selectedPaymentProvider.notifier)
+                                        .state =
+                                    val!;
+                              },
+                            ),
+                            const Text("Card"),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+
             const Spacer(),
             // Confirm Button
             SizedBox(
@@ -365,7 +397,7 @@ class ConfirmRideScreen extends ConsumerWidget {
               child: ElevatedButton.icon(
                 icon: Icon(
                   Icons.check_circle_outline,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white,
                   size: 20,
                 ),
                 style: ElevatedButton.styleFrom(
@@ -393,28 +425,129 @@ class ConfirmRideScreen extends ConsumerWidget {
                     );
                     return;
                   }
+                  final selectedDateTime = DateTime(
+                    selectedDate.year,
+                    selectedDate.month,
+                    selectedDate.day,
+                    selectedTime.hour,
+                    selectedTime.minute,
+                  );
 
+                  final now = DateTime.now();
+                  if (!selectedDateTime.isAfter(now)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "Please choose a future time for your ride",
+                        ),
+                      ),
+                    );
+                    return;
+                  }
                   // Show confirmation dialog
                   showDialog(
                     context: context,
-                    builder: (_) => AlertDialog(
-                      title: const Text("Confirm Ride"),
-                      content: const Text(
-                        "Are you sure you want to confirm this ride?",
+                    builder: (_) => Dialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text("No"),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Icon header
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.deepPurple.shade50,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.local_taxi,
+                                size: 40,
+                                color: Colors.deepPurple,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Title
+                            const Text(
+                              "Confirm Ride",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+
+                            const SizedBox(height: 10),
+
+                            // Message
+                            const Text(
+                              "Do you want to confirm this ride booking?\nMake sure pickup, drop, schedule & payment are correct.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.black87,
+                                height: 1.4,
+                              ),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // Buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(
+                                        color: Colors.deepPurple,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      "Cancel",
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        color: Colors.deepPurple,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      _confirmBooking();
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.deepPurple,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      "Confirm",
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context); // Close confirmation
-                            _confirmBooking(); // Call API and show confirmed dialog
-                          },
-                          child: const Text("Yes"),
-                        ),
-                      ],
+                      ),
                     ),
                   );
                 },
@@ -423,7 +556,7 @@ class ConfirmRideScreen extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white,
                   ),
                 ),
               ),

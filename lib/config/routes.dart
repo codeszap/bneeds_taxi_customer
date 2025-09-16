@@ -13,14 +13,28 @@ import 'package:go_router/go_router.dart';
 import '../screens/home/customize_home.dart';
 import '../screens/login_screen.dart';
 import '../screens/splash_screen.dart';
+import '../services/firebase_service.dart'; // 👈 navigatorKey is here
 
 final GoRouter router = GoRouter(
+  navigatorKey: navigatorKey, // 👈 put it here, not inside routes
+  initialLocation: '/',
   routes: [
-    GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
-    GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
-    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-    //  GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
-    GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const SplashScreen(),
+    ),
+    GoRoute(
+      path: '/splash',
+      builder: (context, state) => const SplashScreen(),
+    ),
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/home',
+      builder: (context, state) => const HomeScreen(),
+    ),
     GoRoute(
       path: '/select-location',
       builder: (context, state) {
@@ -28,7 +42,6 @@ final GoRouter router = GoRouter(
         return SelectLocationScreen(vehTypeId: vehTypeId);
       },
     ),
-
     GoRoute(
       path: '/service-options',
       builder: (context, state) {
@@ -38,7 +51,7 @@ final GoRouter router = GoRouter(
         }
 
         final vehTypeId = extra['vehTypeId'] as String;
-        final totalKms = extra['totalKms'].toString(); // ensure string
+        final totalKms = extra['totalKms'].toString();
         final estTime = extra['estTime'].toString();
 
         return ServiceOptionsScreen(
@@ -48,7 +61,6 @@ final GoRouter router = GoRouter(
         );
       },
     ),
-
     GoRoute(
       path: '/searching',
       builder: (context, state) => const DriverSearchingScreen(),
@@ -57,7 +69,10 @@ final GoRouter router = GoRouter(
       path: '/tracking',
       builder: (context, state) => const TrackingScreen(),
     ),
-    GoRoute(path: '/wallet', builder: (context, state) => const WalletScreen()),
+    GoRoute(
+      path: '/wallet',
+      builder: (context, state) => const WalletScreen(),
+    ),
     GoRoute(
       path: '/select-on-map',
       builder: (context, state) => const SelectOnMapScreen(),
@@ -80,9 +95,7 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/profile',
-      builder: (context, state) {
-        return const ProfileScreen();
-      },
+      builder: (context, state) => const ProfileScreen(),
     ),
   ],
 );
