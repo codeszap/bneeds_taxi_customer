@@ -1,11 +1,15 @@
 import 'dart:async';
-import 'package:bneeds_taxi_customer/widgets/common_drawer.dart';
+import 'dart:convert';
 import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
+import '../providers/location_provider.dart';
+import '../providers/ride_otp_provider.dart';
+
 
 class TrackingScreen extends ConsumerStatefulWidget {
   const TrackingScreen({super.key});
@@ -16,29 +20,49 @@ class TrackingScreen extends ConsumerStatefulWidget {
 
 class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   Completer<GoogleMapController> _controller = Completer();
-
-  static const LatLng _driverLatLng = LatLng(9.9300, 78.1200);
-  static const LatLng _customerLatLng = LatLng(9.9350, 78.1240);
-
   final Set<Polyline> _polylines = {};
-  final List<LatLng> _polylineCoordinates = [];
-
   double _progress = 0.0;
   Timer? _progressTimer;
-  String _generatedOtp = '';
-  bool _driverReached = false;
+
+  LatLng? _customerLatLng;
+  LatLng? _driverLatLng;
 
   @override
   void initState() {
     super.initState();
+  //  _startProgressSimulation();
 
-    // Generate OTP immediately
-    _generatedOtp = _generateOtp();
-    _driverReached = false;
+    // Listen for driver location changes (StateProvider)
+    // ref.listen<LatLng?>(
+    //   driverLatLongProvider, // provider itself, not .notifier
+    //       (_, driver) {
+    //     if (driver != null) {
+    //       _driverLatLng = driver;
+    //       _updatePolyline();
+    //     }
+    //   },
+    // );
 
-    _getPolyline();
-    _startProgressSimulation();
+    // Fetch customer location once (FutureProvider)
+    _fetchCustomerLocation();
   }
+
+  Future<void> _fetchCustomerLocation() async {
+    try {
+      final pos = await ref.read(currentLocationProvider.future);
+      setState(() {
+        _customerLatLng = LatLng(pos.latitude, pos.longitude);
+      });
+
+      // Optionally update polyline if driver location exists
+      if (_driverLatLng?.latitude != 0 && _driverLatLng?.longitude != 0) {
+        _updatePolyline();
+      }
+    } catch (e) {
+      print("Failed to fetch customer location: $e");
+    }
+  }
+
 
   void _startProgressSimulation() {
     const duration = Duration(milliseconds: 500);
@@ -48,47 +72,72 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         if (_progress >= 1.0) {
           _progress = 1.0;
           timer.cancel();
-
-          // After progress finishes, go to next screen
           Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) {
-              context.go(
-                '/ride-on-trip', // <- change this route as per your flow
-              ); // <- change this route as per your flow
-            }
+            if (mounted) context.go('/ride-on-trip');
           });
         }
       });
     });
   }
 
-  void _getPolyline() {
-    _polylineCoordinates.add(_driverLatLng);
-    _polylineCoordinates.add(_customerLatLng);
+  Future<void> _updatePolyline() async {
+    if (_driverLatLng == null || _customerLatLng == null) return;
 
-    setState(() {
-      _polylines.add(
-        Polyline(
-          polylineId: const PolylineId('route'),
-          points: _polylineCoordinates,
-          width: 5,
-          color: Colors.deepPurple,
+    try {
+      const googleApiKey = "AIzaSyAWzUqf3Z8xvkjYV7F4gOGBBJ5d_i9HZhs"; // Replace with your key
+
+      final points = await _getRoutePolyline(
+        origin: _driverLatLng!,
+        destination: _customerLatLng!,
+        apiKey: googleApiKey,
+      );
+
+      setState(() {
+        _polylines
+          ..clear()
+          ..add(
+            Polyline(
+              polylineId: const PolylineId('route'),
+              points: points,
+              width: 5,
+              color: Colors.deepPurple,
+            ),
+          );
+      });
+    } catch (e) {
+      print("Failed to fetch route: $e");
+    }
+  }
+
+  Future<List<LatLng>> _getRoutePolyline({
+    required LatLng origin,
+    required LatLng destination,
+    required String apiKey,
+  }) async {
+    try {
+      // Create an instance of PolylinePoints using your enhanced class
+      final polylinePoints = PolylinePoints(apiKey: apiKey);
+
+      // Make a legacy Directions API request
+      final polylineResult = await polylinePoints.getRouteBetweenCoordinates(
+        request: PolylineRequest(
+          origin: PointLatLng(origin.latitude, origin.longitude),
+          destination: PointLatLng(destination.latitude, destination.longitude),   mode: TravelMode.driving,
         ),
       );
-    });
+
+      if (polylineResult.points.isEmpty) return [];
+
+      // Convert PointLatLng to LatLng
+      return polylineResult.points
+          .map((e) => LatLng(e.latitude, e.longitude))
+          .toList();
+    } catch (e) {
+      print("Polyline fetch error: $e");
+      return [];
+    }
   }
 
-  String _generateOtp() {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final otp = now.remainder(10000).toString().padLeft(4, '0');
-    return otp;
-  }
-
-  @override
-  void dispose() {
-    _progressTimer?.cancel();
-    super.dispose();
-  }
 
   void showCancelDialog(BuildContext context) {
     List<String> reasons = [
@@ -97,14 +146,13 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       "Changed my mind",
       "Booked by mistake",
     ];
-
     String? selectedReason;
 
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
+          builder: (context, setState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -117,11 +165,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: reasons.map((reason) {
                   return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedReason = reason;
-                      });
-                    },
+                    onTap: () => setState(() => selectedReason = reason),
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 6),
                       padding: const EdgeInsets.symmetric(
@@ -159,28 +203,19 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               ),
               actions: [
                 TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
                   child: const Text("Close"),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
                 ),
                 ElevatedButton(
                   onPressed: selectedReason != null
                       ? () {
                           Navigator.of(context).pop();
-
-                          Future.delayed(const Duration(milliseconds: 200), () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  "Ride cancelled: $selectedReason",
-                                ),
-                                backgroundColor: Colors.redAccent,
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          });
-
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Ride cancelled: $selectedReason"),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
                           context.go('/home');
                         }
                       : null,
@@ -199,34 +234,53 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   }
 
   @override
+  void dispose() {
+    _progressTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final otp = ref.watch(rideOtpProvider);
+    final otpDigits = otp.isNotEmpty ? otp.split('') : ['-', '-', '-', '-'];
+
+    if (_customerLatLng == null) {
+      // Show loading until customer location is ready
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final markers = <Marker>{};
+    if (_driverLatLng != null) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('driver'),
+          position: _driverLatLng!,
+          infoWindow: const InfoWindow(title: 'Driver'),
+        ),
+      );
+    }
+    markers.add(
+      Marker(
+        markerId: const MarkerId('customer'),
+        position: _customerLatLng!,
+        infoWindow: const InfoWindow(title: 'You'),
+      ),
+    );
+
     return MainScaffold(
-       title:('Tracking Ride'),
+      title: ('Tracking Ride'),
       body: SingleChildScrollView(
         child: Column(
           children: [
             SizedBox(
               height: 400,
               child: GoogleMap(
-                initialCameraPosition: const CameraPosition(
-                  target: _customerLatLng,
+                initialCameraPosition: CameraPosition(
+                  target: _customerLatLng!,
                   zoom: 14.5,
                 ),
-                onMapCreated: (GoogleMapController controller) {
-                  _controller.complete(controller);
-                },
-                markers: {
-                  const Marker(
-                    markerId: MarkerId('driver'),
-                    position: _driverLatLng,
-                    infoWindow: InfoWindow(title: 'Driver'),
-                  ),
-                  const Marker(
-                    markerId: MarkerId('customer'),
-                    position: _customerLatLng,
-                    infoWindow: InfoWindow(title: 'You'),
-                  ),
-                },
+                onMapCreated: (controller) => _controller.complete(controller),
+                markers: markers,
                 polylines: _polylines,
                 zoomControlsEnabled: false,
                 myLocationButtonEnabled: false,
@@ -294,11 +348,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
                   const SizedBox(height: 20),
 
-            
                   // Always show OTP section
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
@@ -321,10 +374,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: _generatedOtp.split('').map((digit) {
+                          children: otpDigits.map((digit) {
                             return Container(
                               margin: const EdgeInsets.symmetric(horizontal: 8),
                               padding: const EdgeInsets.symmetric(
@@ -336,7 +389,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: Colors.deepPurple,
-                                  width: 1.5,
+                                  width: 1.0,
                                 ),
                               ),
                               child: Text(
@@ -350,33 +403,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                             );
                           }).toList(),
                         ),
-                        const SizedBox(height: 20),
-
-                        // Show progress bar always
-                        Column(
-                          children: [
-                            const Text(
-                              "Driver is arriving...",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.black54,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            LinearProgressIndicator(
-                              value: _progress,
-                              backgroundColor: Colors.grey.shade200,
-                              color: Colors.deepPurple,
-                              minHeight: 6,
-                            ),
-                          ],
-                        ),
                       ],
                     ),
                   ),
 
-              
                   const SizedBox(height: 20),
 
                   Row(

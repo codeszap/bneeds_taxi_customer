@@ -336,11 +336,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             );
                             if (pos != null) {
                               ref.read(toLatLngProvider.notifier).state = pos;
-
-                              // 🔹 Print To Lat/Lng
                               print(
                                 "To Lat: ${pos.latitude}, Lng: ${pos.longitude}",
                               );
+
+                              // 🚀 Auto load route & subtype when To selected
+                              final fromPos = ref.read(fromLatLngProvider);
+                              if (fromPos != null) {
+                                try {
+                                  final routeInfo = await getRouteInfo(
+                                    fromPos,
+                                    pos,
+                                  );
+
+                                  setState(() {
+                                    _routeInfo = routeInfo;
+
+                                    // 👉 Default select first vehicle type (or any logic you want)
+                                    final vehicleTypes =
+                                        ref.read(vehicleTypesProvider).value ??
+                                        [];
+                                    if (vehicleTypes.isNotEmpty) {
+                                      _selectedVehicleType = {
+                                        'vehTypeid':
+                                            vehicleTypes.first.vehTypeid,
+                                        'vehTypeName':
+                                            vehicleTypes.first.vehTypeName,
+                                      };
+                                    }
+
+                                    _selectedSubType = null;
+                                  });
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("Distance error: $e"),
+                                    ),
+                                  );
+                                }
+                              }
                             }
                           }
 
@@ -360,112 +394,111 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               const SizedBox(height: 20),
 
               // Vehicle Types
-              const Text(
-                "🚖 Choose a Service",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 10),
-              vehicleTypesAsync.when(
-                data: (vehicleTypes) {
-                  if (vehicleTypes.isEmpty) return const Text("No services");
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: vehicleTypes.map((type) {
-                        final style = serviceList.firstWhere(
-                          (s) =>
-                              s['type'].toString().toLowerCase() ==
-                              type.vehTypeName.toLowerCase(),
-                          orElse: () => {
-                            'icon': Icons.directions_car,
-                            'color': Colors.grey,
-                          },
-                        );
-
-                        final isSelected =
-                            _selectedVehicleType != null &&
-                            _selectedVehicleType!['vehTypeid'] ==
-                                type.vehTypeid;
-
-                        return GestureDetector(
-                          onTap: () async {
-                            final fromPos = ref.read(fromLatLngProvider);
-                            final toPos = ref.read(toLatLngProvider);
-
-                            if (fromPos == null || toPos == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Please select From & To Location",
-                                  ),
-                                ),
-                              );
-                              return;
-                            }
-
-                            try {
-                              final routeInfo = await getRouteInfo(
-                                fromPos,
-                                toPos,
-                              );
-                              setState(() {
-                                _routeInfo = routeInfo;
-                                _selectedVehicleType = {
-                                  'vehTypeid': type.vehTypeid,
-                                  'vehTypeName': type.vehTypeName,
-                                };
-                                _selectedSubType = null;
-                              });
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Distance error: $e")),
-                              );
-                            }
-                          },
-
-                          child: Container(
-                            margin: const EdgeInsets.only(right: 12),
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected
-                                    ? (style['color'] as Color)
-                                    : Colors.transparent,
-                                width: 2,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: (style['color'] as Color)
-                                      .withOpacity(0.15),
-                                  child: Icon(
-                                    style['icon'] as IconData,
-                                    color: style['color'] as Color,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(type.vehTypeName),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) => Text("Error: $err"),
-              ),
-
-              const SizedBox(height: 20),
+              // const Text(
+              //   "🚖 Choose a Service",
+              //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              // ),
+              // const SizedBox(height: 10),
+              // vehicleTypesAsync.when(
+              //   data: (vehicleTypes) {
+              //     if (vehicleTypes.isEmpty) return const Text("No services");
+              //     return SingleChildScrollView(
+              //       scrollDirection: Axis.horizontal,
+              //       child: Row(
+              //         children: vehicleTypes.map((type) {
+              //           final style = serviceList.firstWhere(
+              //             (s) =>
+              //                 s['type'].toString().toLowerCase() ==
+              //                 type.vehTypeName.toLowerCase(),
+              //             orElse: () => {
+              //               'icon': Icons.directions_car,
+              //               'color': Colors.grey,
+              //             },
+              //           );
+              //
+              //           final isSelected =
+              //               _selectedVehicleType != null &&
+              //               _selectedVehicleType!['vehTypeid'] ==
+              //                   type.vehTypeid;
+              //
+              //           return GestureDetector(
+              //             onTap: () async {
+              //               final fromPos = ref.read(fromLatLngProvider);
+              //               final toPos = ref.read(toLatLngProvider);
+              //
+              //               if (fromPos == null || toPos == null) {
+              //                 ScaffoldMessenger.of(context).showSnackBar(
+              //                   const SnackBar(
+              //                     content: Text(
+              //                       "Please select From & To Location",
+              //                     ),
+              //                   ),
+              //                 );
+              //                 return;
+              //               }
+              //
+              //               try {
+              //                 final routeInfo = await getRouteInfo(
+              //                   fromPos,
+              //                   toPos,
+              //                 );
+              //                 setState(() {
+              //                   _routeInfo = routeInfo;
+              //                   _selectedVehicleType = {
+              //                     'vehTypeid': type.vehTypeid,
+              //                     'vehTypeName': type.vehTypeName,
+              //                   };
+              //                   _selectedSubType = null;
+              //                 });
+              //               } catch (e) {
+              //                 ScaffoldMessenger.of(context).showSnackBar(
+              //                   SnackBar(content: Text("Distance error: $e")),
+              //                 );
+              //               }
+              //             },
+              //
+              //             child: Container(
+              //               margin: const EdgeInsets.only(right: 12),
+              //               padding: const EdgeInsets.all(10),
+              //               decoration: BoxDecoration(
+              //                 color: Colors.white,
+              //                 borderRadius: BorderRadius.circular(12),
+              //                 border: Border.all(
+              //                   color: isSelected
+              //                       ? (style['color'] as Color)
+              //                       : Colors.transparent,
+              //                   width: 2,
+              //                 ),
+              //               ),
+              //               child: Row(
+              //                 mainAxisSize: MainAxisSize.min,
+              //                 children: [
+              //                   CircleAvatar(
+              //                     backgroundColor: (style['color'] as Color)
+              //                         .withOpacity(0.15),
+              //                     child: Icon(
+              //                       style['icon'] as IconData,
+              //                       color: style['color'] as Color,
+              //                     ),
+              //                   ),
+              //                   const SizedBox(width: 8),
+              //                   Text(type.vehTypeName),
+              //                 ],
+              //               ),
+              //             ),
+              //           );
+              //         }).toList(),
+              //       ),
+              //     );
+              //   },
+              //   loading: () => const Center(child: CircularProgressIndicator()),
+              //   error: (err, _) => Text("Error: $err"),
+              // ),
+              //
+              // const SizedBox(height: 20),
 
               // Vehicle Subtypes
               if (_selectedVehicleType != null && _routeInfo != null)
-             
                 subTypesAsync().when(
                   data: (subTypes) {
                     if (subTypes.isEmpty) {
@@ -486,7 +519,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       children: [
                         const SizedBox(height: 10),
                         const Text(
-                          "Choose a subtype",
+                          "Choose a Service",
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

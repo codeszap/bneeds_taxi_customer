@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../providers/ride_otp_provider.dart';
+import '../screens/RideCompleteScreen.dart';
+
 /// Global navigator key (to show dialogs anywhere)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -113,21 +116,41 @@ void _handleIncomingPush(RemoteMessage message, {bool openedFromTray = false}) {
   final data = message.data;
   final status = data['status'] ?? '';
   final bookingId = data['bookingId'] ?? '';
+  final otp = data['otp'] ?? '';
+  final driverLatLong = data['driverLatLong'] ?? '';
 
   if (status == 'accepted') {
-    // ✅ update Riverpod state
+    // ✅ Store OTP in Riverpod
     final context = navigatorKey.currentContext;
     if (context != null) {
       final container = ProviderScope.containerOf(context, listen: false);
-      container.read(driverSearchProvider.notifier).markDriverFound();
+      container.read(rideOtpProvider.notifier).state = otp;
+      container.read(driverLatLongProvider.notifier).state = driverLatLong;
+
+      final container2 = ProviderScope.containerOf(context, listen: false);
+      container2.read(driverSearchProvider.notifier).markDriverFound();
     }
 
-    _showRideAcceptedDialog();
+    _showRideAcceptedDialog(otp: otp);
   }
+  if (status == 'completed_trip') {
+    final fareAmount = data['fareAmount'] ?? '0';
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RideCompleteScreen(fareAmount: fareAmount),
+        ),
+      );
+    }
+  }
+
 }
 
+
 /// Show dialog when ride accepted
-void _showRideAcceptedDialog() {
+void _showRideAcceptedDialog({required String otp}) {
   final context = navigatorKey.currentContext;
   if (context == null) return;
 
@@ -148,9 +171,24 @@ void _showRideAcceptedDialog() {
           ),
         ],
       ),
-      content: const Text(
-        "Your driver has accepted your ride request.\nGet ready for pickup!",
-        style: TextStyle(fontSize: 16, height: 1.4),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Your driver has accepted your ride request.\nGet ready for pickup!",
+            style: TextStyle(fontSize: 16, height: 1.4),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            "Your OTP: $otp", // ✅ show OTP here
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+        ],
       ),
       actions: [
         TextButton(

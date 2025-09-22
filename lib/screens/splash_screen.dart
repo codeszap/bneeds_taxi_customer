@@ -54,7 +54,7 @@ class _SplashScreenState extends State<SplashScreen> {
               Image.asset('assets/images/logo.png', width: 180, height: 180),
               const SizedBox(height: 24),
               Text(
-                "Bneeds Customer",
+                "Ram Meter Auto",
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,

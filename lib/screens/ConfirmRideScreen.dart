@@ -30,7 +30,7 @@ class ConfirmRideScreen extends ConsumerWidget {
     final selectedTime = ref.watch(selectedTimeProvider);
     final fromPos = ref.read(fromLatLngProvider);
     final toPos = ref.read(toLatLngProvider);
-    final pickupLocation = ref.watch(fromLocationProvider);
+        final pickupLocation = ref.watch(fromLocationProvider);
     final dropLocation = ref.watch(toLocationProvider);
     bool _isBooking = false;
     final pickupAddress = pickupLocation.isNotEmpty

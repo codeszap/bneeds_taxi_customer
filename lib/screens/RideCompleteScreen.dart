@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class RideCompleteScreen extends StatelessWidget {
-  const RideCompleteScreen({super.key});
+  final String fareAmount; // ← add this
+
+  const RideCompleteScreen({super.key, required this.fareAmount});
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +13,7 @@ class RideCompleteScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.deepPurple.shade50,
-      resizeToAvoidBottomInset: true, 
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -39,7 +41,7 @@ class RideCompleteScreen extends StatelessWidget {
                       const Text(
                         'Trip Completed!',
                         style:
-                            TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 10),
                       const Text(
@@ -74,18 +76,18 @@ class RideCompleteScreen extends StatelessWidget {
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
-                          children: const [
-                            Text(
+                          children: [
+                            const Text(
                               "Total Fare",
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: 14,
                               ),
                             ),
-                            SizedBox(height: 6),
+                            const SizedBox(height: 6),
                             Text(
-                              "₹230",
-                              style: TextStyle(
+                              "₹$fareAmount", // ← dynamic fare
+                              style: const TextStyle(
                                 fontSize: 30,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
@@ -97,14 +99,14 @@ class RideCompleteScreen extends StatelessWidget {
 
                       const SizedBox(height: 30),
 
+                      // ⭐ Rate your trip (same as before)
                       const Text(
                         "Rate your trip",
                         style:
-                            TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 10),
 
-                      // ⭐ Star rating
                       StatefulBuilder(builder: (context, setState) {
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.center,

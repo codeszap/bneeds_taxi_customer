@@ -53,6 +53,9 @@ class DriverSearchNotifier extends StateNotifier<DriverSearchState> {
 
       final fromLocation = ref.read(fromLocationProvider);
       final toLocation = ref.read(toLocationProvider);
+      final fromlatlong = ref.read(fromLatLngProvider);
+      final tolatlong = ref.read(toLatLngProvider);
+
       final amount =
           double.tryParse(ref.read(selectedServiceProvider)?['price'] ?? '0') ??
           0;
@@ -67,8 +70,10 @@ class DriverSearchNotifier extends StateNotifier<DriverSearchState> {
             title: "New Ride Request",
             body: "Pickup: $fromLocation\nDrop: $toLocation\nFare: ₹$amount",
             data: {
-              "pickup": fromLocation,
-              "drop": toLocation,
+              "pickuplatlong" : fromlatlong.toString(),
+              "droplatlong" : tolatlong.toString(),
+              "pickup": fromLocation.toString(),
+              "drop": toLocation.toString(),
               "fare": amount.toString(),
               "vehTypeId": ref.read(selectedServiceProvider)?['typeId'],
               "bookingId": lastBookingId,
@@ -186,6 +191,7 @@ class _DriverSearchingScreenState extends ConsumerState<DriverSearchingScreen> {
                       if (GoRouter.of(context).canPop()) {
                         context.pop();
                       }
+                      context.go("/home");
                     },
                     icon: const Icon(Icons.close),
                     label: const Text("Cancel Ride"),

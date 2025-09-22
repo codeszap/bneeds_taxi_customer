@@ -83,8 +83,13 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/ride-complete',
-      builder: (context, state) => const RideCompleteScreen(),
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        final fareAmount = extra['fareAmount'] ?? '0';
+        return RideCompleteScreen(fareAmount: fareAmount);
+      },
     ),
+
     GoRoute(
       path: '/customer-support',
       builder: (context, state) => const CustomerSupportScreen(),
