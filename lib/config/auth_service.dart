@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bneeds_taxi_customer/repositories/profile_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../utils/sharedPrefrencesHelper.dart';
+
 final generatedOtpProvider = StateProvider<String?>((ref) => null);
 
 Future<void> sendOTP({
@@ -98,7 +100,8 @@ Future<bool> verifyOTPAndCheckUser({
     // User exists, store userid in SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     final userId = profiles.first.userid; // assuming 'userid' exists
-    await prefs.setString('userid', userId);
+    await SharedPrefsHelper.setDriverId(userId);
+   // await prefs.setString('userid', userId);
     await prefs.setBool(
       'isProfileCompleted',
       true,
