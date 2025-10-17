@@ -118,7 +118,7 @@ Future<void> requestNotificationPermissions() async {
 Future<void> _handleIncomingPush(RemoteMessage message, {bool openedFromTray = false}) async {
   final data = message.data;
   final status = data['status'] ?? '';
-  final bookingId = data['bookingId'] ?? '';
+  final lastBookingId = data['lastBookingId'] ?? '';
   final otp = data['otp'] ?? '';
   final driverLatLong = data['driverLatLong'] ?? '';
   final driverMobno = data['driverMobno'] ?? '';
@@ -245,7 +245,9 @@ void _showRideAcceptedDialog({required String otp}) {
         TextButton(
           onPressed: () {
             Navigator.pop(ctx); // close dialog
-            GoRouter.of(context).go("/tracking"); // ✅ navigate to tracking
+            Future.microtask(() {
+              GoRouter.of(context).go("/tracking"); // navigate safely
+            });
           },
           style: TextButton.styleFrom(
             foregroundColor: Colors.white,

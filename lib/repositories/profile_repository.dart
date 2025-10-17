@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'package:bneeds_taxi_customer/core/api_client.dart';
 import 'package:bneeds_taxi_customer/core/api_endpoints.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user_profile_model.dart';
+import '../utils/sharedPrefrencesHelper.dart';
 
 class ProfileRepository {
   final Dio _dio = ApiClient().dio;
@@ -11,7 +13,9 @@ class ProfileRepository {
     final String url =
         "${ApiEndpoints.userProfile}?action=L&mobileno=$mobileno";
 
-    print("📡 Fetch Profile API URL: ${_dio.options.baseUrl}$url");
+    if (kDebugMode) {
+      print("📡 Fetch Profile API URL: ${_dio.options.baseUrl}$url");
+    }
 
     try {
       final response = await _dio.get(url);
@@ -49,9 +53,11 @@ class ProfileRepository {
   }
 
 
+
   Future<String> insertUserProfile(UserProfile profile) async {
     final String url = "${ApiEndpoints.userProfile}?action=I";
 
+    // Note: The structure of the body needs to match the C# API's expected RootObject
     final body = {
       "userprofileDet": [profile.toJson()],
     };
@@ -66,16 +72,25 @@ class ProfileRepository {
         options: Options(headers: {'Content-Type': 'application/json'}),
       );
 
-      print("✅ Insert Response: ${response.data}");
+      if (kDebugMode) {
+        print("✅ Insert Response: ${response.data}");
+      }
 
       if (response.statusCode == 200) {
         final data = response.data is String
             ? jsonDecode(response.data)
             : response.data;
 
-        return data["status"] == "success"
-            ? "Insert Successfully"
-            : data["message"] ?? "Insert Failed";
+        if (data["status"] == "success") {
+          // --- THIS IS THE CRITICAL CHANGE ---
+          final String userId = data["userid"].toString(); // Get the userid from the response
+          await SharedPrefsHelper.setUserId(userId); // Save it to shared preferences
+          // ------------------------------------
+
+          return data["message"] ?? "Insert Successfully";
+        } else {
+          return data["message"] ?? "Insert Failed";
+        }
       } else {
         throw Exception("Insert failed: ${response.statusCode}");
       }
@@ -85,10 +100,12 @@ class ProfileRepository {
     }
   }
 
+
   Future<String> updateUserProfile(UserProfile profile) async {
     final String url = "${ApiEndpoints.userProfile}?action=U";
 
     final body = {
+      // Note the key name: 'userprofileupdate' as expected by the C# RootObject
       "userprofileupdate": [profile.toJson()],
     };
 
@@ -109,14 +126,23 @@ class ProfileRepository {
             ? jsonDecode(response.data)
             : response.data;
 
-        return data["status"] == "success"
-            ? "Updated Successfully"
-            : data["message"] ?? "Update Failed";
+        if (data["status"] == "success") {
+          // Confirm the userid from the response (Optional: can be used for logging/verification)
+          final String userId = data["userid"].toString();
+          await SharedPrefsHelper.setUserId(userId);
+          print("UserID $userId updated successfully.");
+
+          return data["message"] ?? "Updated Successfully";
+        } else {
+          // Handles C# API errors like {"status":"error", "message":"..."}
+          return data["message"] ?? "Update Failed";
+        }
       } else {
         throw Exception("Update failed: ${response.statusCode}");
       }
     } catch (e) {
       print("❌ Error updating profile: $e");
+      // Ensure the thrown exception is formatted for a clear stack trace/error handling
       throw Exception("Error updating profile: $e");
     }
   }
@@ -196,4 +222,55 @@ class ProfileRepository {
     return List<Map<String, dynamic>>.from(data['data'] ?? []);
   }
 
+  Future<int?> updateFcmToken({
+    required String mobileNo,
+    required String tokenKey,
+  }) async {
+    final String url = "${ApiEndpoints.userProfile}?action=T";
+
+    final body = jsonEncode({
+      "updateridertokenkey": [
+        {
+          "mobileno": mobileNo,
+          "tokenkey": tokenKey,
+        }
+      ]
+    });
+
+    try {
+      print("🚀 Calling API: $url");
+      print("📦 Body: $body");
+
+      final response = await _dio.post(
+        url,
+        data: body,
+        options: Options(headers: {"Content-Type": "application/json"}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        var data = response.data;
+
+        // 🚀 check if data is string, then decode
+        if (data is String) {
+          data = jsonDecode(data);
+        }
+
+        final bookingId = data['bookingId'] as int?;
+
+        if (bookingId != null) {
+          print("Booking saved successfully with ID: $bookingId");
+          return bookingId;
+        } else {
+          print("Error: 'bookingId' not found in the response.");
+          return null;
+        }
+      } else {
+        print("Error saving booking with status code: ${response.statusCode}");
+        return null;
+      }
+    } catch (e) {
+      print("Error saving booking: $e");
+      rethrow;
+    }
+  }
 }

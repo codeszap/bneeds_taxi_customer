@@ -1,264 +1,168 @@
 import 'dart:convert';
-
 import 'package:shared_preferences/shared_preferences.dart';
-
 
 class SharedPrefsKeys {
   static const String driverStatus = "driverStatus";
   static const String riderId = "riderId";
-  static const String userId = "userId";
-  static const String bookingId = "bookingId";
+  static const String userId = "userid";
+  static const String driverTimer = "driverTimer";
+  static const String lastBookingId = "lastBookingId";
   static const String ongoingTrip = "ongoingTrip";
-  static const String driverMobile = "driverMobile";
+  static const String mobileno = "mobileno";
   static const String driverName = "driverName";
   static const String driverCity = "driverCity";
-  static const String isDriverProfileCompleted = "isDriverProfileCompleted";
-  static const String driverFcmToken = "driverFcmToken";
+  static const String isProfileCompleted = "isProfileCompleted";
+  static const String fcmToken = "fcmToken";
   static const String driverUsername = "driverUsername";
-
 }
 
 class SharedPrefsHelper {
-  static SharedPreferences? _prefs;
-
-  /// Initialize (call once in main.dart before runApp)
-  static Future init() async {
-    _prefs = await SharedPreferences.getInstance();
-  }
 
   /// ---------- SET METHODS ----------
-  static Future setDriverStatus(String status) async {
-    await _prefs?.setString(SharedPrefsKeys.driverStatus, status);
+  static Future<void> setDriverStatus(String status) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(SharedPrefsKeys.driverStatus, status);
   }
 
-  static Future setRiderId(String riderId) async {
-    await _prefs?.setString(SharedPrefsKeys.riderId, riderId);
+  static Future<void> setRiderId(String riderId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(SharedPrefsKeys.riderId, riderId);
   }
 
-  static Future setBookingId(String bookingId) async {
-    await _prefs?.setString(SharedPrefsKeys.bookingId, bookingId);
+  static Future<void> setLastBookingId(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(SharedPrefsKeys.lastBookingId, id);
   }
 
-  static Future setUserId(String userId) async {
-    await _prefs?.setString(SharedPrefsKeys.userId, userId);
+  static Future<void> setDriverTimer(int driverTimer) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(SharedPrefsKeys.driverTimer, driverTimer);
   }
 
-  static Future setOngoingTrip(String tripJson) async {
-    await _prefs?.setString(SharedPrefsKeys.ongoingTrip, tripJson);
+  static Future<void> setUserId(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(SharedPrefsKeys.userId, userId);
   }
 
-  static Future setDriverMobile(String mobile) async {
-    await _prefs?.setString(SharedPrefsKeys.driverMobile, mobile);
+  static Future<void> setOngoingTrip(String tripJson) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(SharedPrefsKeys.ongoingTrip, tripJson);
   }
 
-  static Future setDriverName(String name) async {
-    await _prefs?.setString(SharedPrefsKeys.driverName, name);
+  static Future<void> setMobileNo(String mobile) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(SharedPrefsKeys.mobileno, mobile);
   }
 
-  static Future setDriverCity(String city) async {
-    await _prefs?.setString(SharedPrefsKeys.driverCity, city);
+  static Future<void> setDriverName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(SharedPrefsKeys.driverName, name);
   }
 
-  static Future setIsDriverProfileCompleted(bool completed) async {
-    await _prefs?.setBool(SharedPrefsKeys.isDriverProfileCompleted, completed);
+  static Future<void> setDriverCity(String city) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(SharedPrefsKeys.driverCity, city);
   }
 
-  static Future setDriverFcmToken(String token) async {
-    await _prefs?.setString(SharedPrefsKeys.driverFcmToken, token);
+  static Future<void> setFcmToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(SharedPrefsKeys.fcmToken, token);
+  }
+
+  static Future<void> setProfileCompleted(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(SharedPrefsKeys.isProfileCompleted, value);
+  }
+
+  static Future<void> setDriverUsername(String username) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(SharedPrefsKeys.driverUsername, username);
   }
 
   /// ---------- GET METHODS ----------
-  static String getDriverStatus() => _prefs?.getString(SharedPrefsKeys.driverStatus) ?? "OF";
+  static Future<String> getDriverStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(SharedPrefsKeys.driverStatus) ?? "OF";
+  }
 
-  static String getRiderId() => _prefs?.getString(SharedPrefsKeys.riderId) ?? "";
+  static Future<String> getRiderId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(SharedPrefsKeys.riderId) ?? "";
+  }
 
-  static String getBookingId() => _prefs?.getString(SharedPrefsKeys.bookingId) ?? "";
+  static Future<String?> getLastBookingId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(SharedPrefsKeys.lastBookingId);
+  }
 
-  static String getUserId() => _prefs?.getString(SharedPrefsKeys.userId) ?? "";
+  static Future<String> getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(SharedPrefsKeys.userId) ?? "";
+  }
 
-  static String? getOngoingTrip() => _prefs?.getString(SharedPrefsKeys.ongoingTrip);
+  static Future<String?> getOngoingTrip() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(SharedPrefsKeys.ongoingTrip);
+  }
 
-  static String getDriverMobile() => _prefs?.getString(SharedPrefsKeys.driverMobile) ?? "";
+  static Future<String> getMobileNo() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(SharedPrefsKeys.mobileno) ?? "";
+  }
 
-  static String getDriverName() => _prefs?.getString(SharedPrefsKeys.driverName) ?? "";
+  static Future<String> getDriverName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(SharedPrefsKeys.driverName) ?? "";
+  }
 
-  static String getDriverCity() => _prefs?.getString(SharedPrefsKeys.driverCity) ?? "";
+  static Future<String> getDriverCity() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(SharedPrefsKeys.driverCity) ?? "";
+  }
 
-  static bool getIsDriverProfileCompleted() => _prefs?.getBool(SharedPrefsKeys.isDriverProfileCompleted) ?? false;
+  static Future<String> getFcmToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(SharedPrefsKeys.fcmToken) ?? "";
+  }
 
-  static String getDriverFcmToken() => _prefs?.getString(SharedPrefsKeys.driverFcmToken) ?? "";
+  static Future<int> getDriverTimer() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(SharedPrefsKeys.driverTimer) ?? 0;
+  }
+
+  static Future<bool> getDriverProfileCompleted() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(SharedPrefsKeys.isProfileCompleted) ?? false;
+  }
 
   /// ---------- CLEAR METHODS ----------
-  static Future clearDriverStatus() async {
-    await _prefs?.remove(SharedPrefsKeys.driverStatus);
-  }
-
-  static Future clearOngoingTrip() async {
-    await _prefs?.remove(SharedPrefsKeys.ongoingTrip);
-  }
-
-  static Future clearAll() async {
-    await _prefs?.clear();
-  }
-
-  static bool getDriverProfileCompleted() {
-    return _prefs?.getBool("isDriverProfileCompleted") ?? false;
-  }
-  static Future setDriverUsername(String username) async {
-    await _prefs?.setString(SharedPrefsKeys.driverUsername, username);
-  }
-
-  static Future setDriverProfileCompleted(bool value) async {
-    await _prefs?.setBool(SharedPrefsKeys.isDriverProfileCompleted, value);
-  }
-
-  static Future<void> setDriverVehicleTypeId(String value) async {
+  static Future<void> clearDriverStatus() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('driverVehicleTypeId', value);
+    await prefs.remove(SharedPrefsKeys.driverStatus);
   }
 
-  static Future<String?> getDriverVehicleTypeId() async {
+  static Future<void> clearOngoingTrip() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('driverVehicleTypeId');
+    await prefs.remove(SharedPrefsKeys.ongoingTrip);
   }
 
-  static Future<void> setDriverVehicleSubTypeId(String value) async {
+  static Future<void> clearAll() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('driverVehicleSubTypeId', value);
+    await prefs.clear();
   }
 
-  static Future<String?> getDriverVehicleSubTypeId() async {
+  static Future<void> clearUserId() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('driverVehicleSubTypeId');
+    await prefs.remove(SharedPrefsKeys.userId);
   }
-// Save trip data
-  static Future<void> setTripData(Map<String, dynamic> tripData) async {
+
+  static Future<void> clearLastBookingId() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('tripData', jsonEncode(tripData));
+    await prefs.remove(SharedPrefsKeys.lastBookingId);
   }
 
-  static Future<void> setPickupTripData(Map<String, dynamic> tripData) async {
+  static Future<void> clearRiderId() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('tripPickupData', jsonEncode(tripData));
+    await prefs.remove(SharedPrefsKeys.riderId);
   }
-
-  static Future<Map<String, dynamic>?> getPickupTripData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString('tripPickupData');
-    if (data != null) {
-      return jsonDecode(data);
-    }
-    return null;
-  }
-
-// Get trip data
-  static Future<Map<String, dynamic>?> getTripData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString('tripData');
-    if (data != null) {
-      return jsonDecode(data);
-    }
-    return null;
-  }
-
-// Clear trip data
-  static Future<void> clearTripData() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('tripData');
-  }
-
-  static Future clearUserId() async {
-    await _prefs?.remove(SharedPrefsKeys.userId);
-  }
-
-  static Future clearBookingId() async {
-    await _prefs?.remove(SharedPrefsKeys.bookingId);
-  }
-
-  static Future clearRiderId() async {
-    await _prefs?.remove(SharedPrefsKeys.riderId);
-  }
-
-  /// ---------- NEW DRIVER PROFILE FIELDS ----------
-
-  static Future setDriverAddress1(String value) async =>
-      await _prefs?.setString('driverAddress1', value);
-
-  static String getDriverAddress1() =>
-      _prefs?.getString('driverAddress1') ?? "";
-
-  static Future setDriverAddress2(String value) async =>
-      await _prefs?.setString('driverAddress2', value);
-
-  static String getDriverAddress2() =>
-      _prefs?.getString('driverAddress2') ?? "";
-
-  static Future setDriverAddress3(String value) async =>
-      await _prefs?.setString('driverAddress3', value);
-
-  static String getDriverAddress3() =>
-      _prefs?.getString('driverAddress3') ?? "";
-
-  static Future setDriverGender(String value) async =>
-      await _prefs?.setString('driverGender', value);
-
-  static String getDriverGender() =>
-      _prefs?.getString('driverGender') ?? "";
-
-  static Future setDriverDob(String value) async =>
-      await _prefs?.setString('driverDob', value);
-
-  static String getDriverDob() =>
-      _prefs?.getString('driverDob') ?? "";
-
-  static Future setDriverVehicleTypeName(String value) async =>
-      await _prefs?.setString('driverVehicleTypeName', value);
-
-  static Future<String?> getDriverVehicleTypeName() async =>
-      _prefs?.getString('driverVehicleTypeName');
-
-  static Future setDriverVehicleSubTypeName(String value) async =>
-      await _prefs?.setString('driverVehicleSubTypeName', value);
-
-  static Future<String?> getDriverVehicleSubTypeName() async =>
-      _prefs?.getString('driverVehicleSubTypeName');
-
-  static Future setDriverVehicleNumber(String value) async =>
-      await _prefs?.setString('driverVehicleNumber', value);
-
-  static Future<String?> getDriverVehicleNumber() async =>
-      _prefs?.getString('driverVehicleNumber');
-
-  static Future setDriverFcDate(String value) async =>
-      await _prefs?.setString('driverFcDate', value);
-
-  static Future<String?> getDriverFcDate() async =>
-      _prefs?.getString('driverFcDate');
-
-  static Future setDriverInsDate(String value) async =>
-      await _prefs?.setString('driverInsDate', value);
-
-  static Future<String?> getDriverInsDate() async =>
-      _prefs?.getString('driverInsDate');
-
-  static Future setDriverLicenseNo(String value) async =>
-      await _prefs?.setString('driverLicenseNo', value);
-
-  static Future<String?> getDriverLicenseNo() async =>
-      _prefs?.getString('driverLicenseNo');
-
-  static Future setDriverAdhaarNo(String value) async =>
-      await _prefs?.setString('driverAdhaarNo', value);
-
-  static Future<String?> getDriverAdhaarNo() async =>
-      _prefs?.getString('driverAdhaarNo');
-  /// ---------- DRIVER ID ----------
-  static Future setDriverId(String value) async =>
-      await _prefs?.setString('driverId', value);
-
-  static String getDriverId() =>
-      _prefs?.getString('driverId') ?? "";
-
-
-
 }

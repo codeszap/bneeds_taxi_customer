@@ -3,12 +3,15 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:bneeds_taxi_customer/models/user_profile_model.dart'; // DriverProfile model
 import 'package:bneeds_taxi_customer/providers/location_provider.dart';
+import 'package:bneeds_taxi_customer/providers/ride_otp_provider.dart';
 import 'package:bneeds_taxi_customer/repositories/profile_repository.dart';
 import 'package:bneeds_taxi_customer/services/FirebasePushService.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../utils/sharedPrefrencesHelper.dart';
 
 enum DriverSearchStatus { idle, loading, searching, sending, found, error }
 
@@ -70,7 +73,7 @@ class DriverSearchNotifier extends StateNotifier<DriverSearchState> {
   //
   //     final prefs = await SharedPreferences.getInstance();
   //     final fcmToken = prefs.getString('fcmToken') ?? '';
-  //     final lastBookingId = prefs.getString("lastBookingId") ?? '';
+  //     final lastlastBookingId = prefs.getString("lastlastBookingId") ?? '';
   //     final userId = prefs.getString('userid') ?? '';
   //     final mobileNo = prefs.getString('mobileno') ?? '';
   //
@@ -93,7 +96,7 @@ class DriverSearchNotifier extends StateNotifier<DriverSearchState> {
   //           "drop": toLocation.toString(),
   //           "fare": amount.toString(),
   //           "vehTypeId": ref.read(selectedServiceProvider)?['typeId'] ?? '',
-  //           "bookingId": lastBookingId,
+  //           "lastBookingId": lastlastBookingId,
   //           "token": fcmToken,
   //           "userId": userId,
   //           "userMobNo": mobileNo,
@@ -155,11 +158,17 @@ class DriverSearchNotifier extends StateNotifier<DriverSearchState> {
       final toLocation = ref.read(toLocationProvider);
       final amount = double.tryParse(ref.read(selectedServiceProvider)?['price'] ?? '0') ?? 0;
 
-      final prefs = await SharedPreferences.getInstance();
-      final fcmToken = prefs.getString('fcmToken') ?? '';
-      final lastBookingId = prefs.getString("lastBookingId") ?? '';
-      final userId = prefs.getString('userid') ?? '';
-      final mobileNo = prefs.getString('mobileno') ?? '';
+     // final prefs = await SharedPreferences.getInstance();
+      final fcmToken = await SharedPrefsHelper.getFcmToken() ?? '';
+      final lastBookingId = await SharedPrefsHelper.getLastBookingId() ?? '';
+      final userId = await SharedPrefsHelper.getUserId();
+      final mobileNo = await SharedPrefsHelper.getMobileNo() ?? '';
+
+      if(fcmToken != null){
+
+      }
+
+
 
       state = DriverSearchState(status: DriverSearchStatus.sending);
 
@@ -181,11 +190,20 @@ class DriverSearchNotifier extends StateNotifier<DriverSearchState> {
               "token": fcmToken,
               "userId": userId,
               "userMobNo": mobileNo,
-              "duration" : "30",
+              "duration": "30",
+              "sound": "ride_request",
+            },
+            android: {
+              "priority": "HIGH",
+              "notification": {
+                "channel_id": "ride_request_channel",
+                "click_action": "" // optional, can be left empty
+              }
             },
           );
         }
       }
+
 
       // 3️⃣ Wait for max 30 seconds globally
       final accepted = await _waitForAnyDriverResponse(const Duration(seconds: 40));
@@ -259,7 +277,7 @@ class DriverSearchNotifier extends StateNotifier<DriverSearchState> {
   //
   //     final prefs = await SharedPreferences.getInstance();
   //     final fcmToken = prefs.getString('fcmToken');
-  //     final lastBookingId = prefs.getString("lastBookingId");
+  //     final lastlastBookingId = prefs.getString("lastlastBookingId");
   //     final userId = prefs.getString('userid') ?? "";
   //     final mobileNo = prefs.getString('mobileno') ?? "";
   //
@@ -282,7 +300,7 @@ class DriverSearchNotifier extends StateNotifier<DriverSearchState> {
   //         "drop": toLocation.toString(),
   //         "fare": amount.toString(),
   //         "vehTypeId": ref.read(selectedServiceProvider)?['typeId'],
-  //         "bookingId": lastBookingId,
+  //         "lastBookingId": lastlastBookingId,
   //         "token": fcmToken ?? '',
   //         "userId": userId,
   //         "userMobNo": mobileNo,

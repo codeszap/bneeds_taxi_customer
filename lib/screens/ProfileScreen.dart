@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../utils/sharedPrefrencesHelper.dart';
 import '../widgets/common_drawer.dart';
 import '../models/user_profile_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -293,8 +294,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         final fcmToken = await FirebaseMessaging.instance.getToken();
         print("🔥 Got FCM Token: $fcmToken");
 
-            final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('fcmToken', fcmToken ?? '');
+    await SharedPrefsHelper.setFcmToken( fcmToken ?? '');
 
         final newProfile = UserProfile(
           userid: existingProfile?.userid ?? "",
@@ -319,9 +319,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             print("Updating existing profile: $newProfile");
             await ref.read(updateProfileProvider(newProfile).future);
           }
-
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('isProfileCompleted', true);
+          await SharedPrefsHelper.setProfileCompleted(true);
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Profile saved successfully')),

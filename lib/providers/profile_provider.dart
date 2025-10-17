@@ -24,3 +24,8 @@ final updateProfileProvider =
   final repo = ref.watch(profileRepositoryProvider);
   return repo.updateUserProfile(profile);
 });
+
+
+final updateFcmTokenProvider = Provider<ProfileRepository>((ref) {
+  return ProfileRepository();
+});

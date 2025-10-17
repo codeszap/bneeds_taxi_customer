@@ -10,6 +10,7 @@ import 'package:bneeds_taxi_customer/screens/ServiceOptionsScreen.dart';
 import 'package:bneeds_taxi_customer/screens/TrackingScreen.dart';
 import 'package:bneeds_taxi_customer/screens/WalletScreen.dart';
 import 'package:go_router/go_router.dart';
+import '../screens/ManualStartScreen.dart';
 import '../screens/home/HomeScreen.dart';
 import '../screens/login_screen.dart';
 import '../screens/splash_screen.dart';
@@ -34,6 +35,10 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/home',
       builder: (context, state) => const HomeScreen(),
+    ),
+    GoRoute(
+      path: '/manual',
+      builder: (context, state) => const ManualStartScreen(),
     ),
     GoRoute(
       path: '/select-location',

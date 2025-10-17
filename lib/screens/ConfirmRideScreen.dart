@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../utils/sharedPrefrencesHelper.dart';
+
 // Payment selection provider
 final selectedPaymentProvider = StateProvider<String>((ref) => "Cash");
 final dateTimeCheckboxProvider = StateProvider<bool>((ref) => false);
@@ -56,9 +58,8 @@ class ConfirmRideScreen extends ConsumerWidget {
       isBooking = true;
 
       final repository = ref.read(bookingRepositoryProvider);
-      final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getString('userid') ?? "";
-      final mobileNo = prefs.getString('mobileno') ?? "";
+      final userId = SharedPrefsHelper.getUserId();
+      final mobileNo = SharedPrefsHelper.getMobileNo();
 
       final selectedDate = ref.read(selectedDateProvider);
       final selectedTime = ref.read(selectedTimeProvider);
@@ -92,8 +93,8 @@ class ConfirmRideScreen extends ConsumerWidget {
       final selectedPayment = ref.read(selectedPaymentProvider);
 
       final booking = BookingModel(
-        userid: userId,
-        mobileNo: mobileNo,
+        userid: await userId,
+        mobileNo: await mobileNo,
         riderId: "",
         bookDate: bookDateStr,
         scheduled: isScheduled ? "Y" : "N",
@@ -118,13 +119,13 @@ class ConfirmRideScreen extends ConsumerWidget {
       );
 
       try {
-        final bookingId = await repository.addBooking(booking);
+        final lastBookingId = await repository.addBooking(booking);
 
         // Close loading dialog
         Navigator.of(context, rootNavigator: true).pop();
 
-        if (bookingId != null) {
-          await prefs.setString("lastBookingId", bookingId.toString());
+        if (lastBookingId != null) {
+          await SharedPrefsHelper.setLastBookingId(lastBookingId.toString());
 
           if(isScheduled) {
             // Show success SnackBar

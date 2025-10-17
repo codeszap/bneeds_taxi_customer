@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bneeds_taxi_customer/repositories/profile_repository.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/sharedPrefrencesHelper.dart';
 
@@ -97,15 +96,9 @@ Future<bool> verifyOTPAndCheckUser({
   print("Fetched profiles: ${profiles.map((p) => p.toJson()).toList()}");
 
   if (profiles.isNotEmpty) {
-    // User exists, store userid in SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final userId = profiles.first.userid; // assuming 'userid' exists
-    await SharedPrefsHelper.setDriverId(userId);
-   // await prefs.setString('userid', userId);
-    await prefs.setBool(
-      'isProfileCompleted',
-      true,
-    ); // optional, if you track profile completion
+    final userId = profiles.first.userid;
+    await SharedPrefsHelper.setUserId(userId);
+    await SharedPrefsHelper.setProfileCompleted(true);
     print("Stored userid in session: $userId");
     return true;
   } else {

@@ -24,6 +24,7 @@ class FirebasePushService {
     required String title,
     required String body,
     Map<String, dynamic>? data,
+    Map<String, dynamic>? android,
   }) async {
     final token = await _getAccessToken(); // ✅ dynamically fetch token
 
@@ -32,6 +33,7 @@ class FirebasePushService {
         "token": fcmToken,
         "notification": {"title": title, "body": body},
         "data": data ?? {},
+        "android": android ?? {},
       }
     };
 

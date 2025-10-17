@@ -17,6 +17,7 @@ import '../providers/ride_otp_provider.dart';
 import '../repositories/booking_repository.dart';
 import '../repositories/profile_repository.dart';
 import '../services/FirebasePushService.dart';
+import '../utils/sharedPrefrencesHelper.dart';
 
 final tripStartedProvider = StateProvider<bool>((ref) => false);
 
@@ -43,18 +44,20 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   @override
   void initState() {
     super.initState();
-    _loadRemainingTime(); // countdown start
-    _loadSavedRideInfo();
-    _startDriverLocationPolling();
-    _fetchCustomerLocation();
-    fetchDriverProfile();
+    _initializeScreen();
   }
 
-
+  Future<void> _initializeScreen() async {
+    await _loadRemainingTime();
+    await _loadSavedRideInfo();
+    await _fetchCustomerLocation();
+    await fetchDriverProfile();
+    _startDriverLocationPolling();
+  }
 
   Future<void> _loadRemainingTime() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedTime = prefs.getInt("driverTimer") ?? 120;
+    final savedTime = await SharedPrefsHelper.getDriverTimer();
+    if (!mounted) return;
     setState(() {
       _remainingSeconds = savedTime;
     });
@@ -86,26 +89,38 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   }
 
   Future<void> _saveRemainingTime() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt("driverTimer", _remainingSeconds);
+    await SharedPrefsHelper.setDriverTimer(_remainingSeconds);
   }
 
   Future<void> _loadSavedRideInfo() async {
-    final container = ProviderScope.containerOf(context, listen: false);
-
-    final savedOtp = await    RideStorage.getRideOtp();
-    final savedDriverLatLong = "9.9155706,78.1106788";
-//    final savedDriverLatLong = await RideStorage.getDriverLatLong();
+    final savedDriverLatLong = await RideStorage.getDriverLatLong();
     final savedDropLatLong = await RideStorage.getDropLatLong();
     final savedDriverMobNo = await RideStorage.getDriverMobNo();
     final savedTripStarted = await RideStorage.getTripStarted();
+    final savedOtp = await RideStorage.getRideOtp();
 
-    if (savedOtp != null) container.read(rideOtpProvider.notifier).state = savedOtp;
-    if (savedDriverLatLong != null) container.read(driverLatLongProvider.notifier).state = savedDriverLatLong;
-    if (savedDropLatLong != null) container.read(dropLatLngProvider.notifier).state = savedDropLatLong;
-    if (savedDriverMobNo != null) container.read(driverMobNoProvider.notifier).state = savedDriverMobNo;
-    container.read(tripStartedProvider.notifier).state = savedTripStarted;
+    // Update Riverpod providers safely
+    if (savedOtp != null) {
+      ref.read(rideOtpProvider.notifier).state = savedOtp;
+    }
+
+    if (savedDriverLatLong != null && savedDriverLatLong.isNotEmpty) {
+      ref.read(driverLatLongProvider.notifier).state = savedDriverLatLong;
+    }
+
+    if (savedDropLatLong != null && savedDropLatLong.isNotEmpty) {
+      ref.read(dropLatLngProvider.notifier).state = savedDropLatLong;
+    }
+
+    if (savedDriverMobNo != null && savedDriverMobNo.isNotEmpty) {
+      ref.read(driverMobNoProvider.notifier).state = savedDriverMobNo;
+    }
+
+    if (savedTripStarted != null) {
+      ref.read(tripStartedProvider.notifier).state = savedTripStarted;
+    }
   }
+
 
 
   void _startDriverLocationPolling() {
@@ -158,6 +173,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       final pos = await ref.read(currentLocationProvider.future);
       setState(() {
         _customerLatLng = LatLng(pos.latitude, pos.longitude);
+       // _customerLatLng = LatLng(9.9155706,78.1106788);
       });
 
       if (_driverLatLng != null) {
@@ -392,8 +408,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final tripStarted = ref.watch(tripStartedProvider);
 
     if (_customerLatLng == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const FullScreenLoader(message: "Fetching your location...");
     }
+
 
     final markers = <Marker>{};
 
@@ -733,7 +750,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                     Navigator.of(dialogContext).pop();
 
                     final prefs = await SharedPreferences.getInstance();
-                    final lastBookingId = prefs.getString("lastBookingId") ?? '';
+                    final lastlastBookingId = prefs.getString("lastlastBookingId") ?? '';
 
                     // Read pickup/drop values BEFORE clearing providers
                     final fromLocation = ref.read(fromLocationProvider) ?? 'N/A';
@@ -742,7 +759,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                     // Prepare cancel model
                     final cancelModel = CancelModel(
                       decline_reason: selectedReason!,
-                      Bookingid: lastBookingId,
+                      lastBookingId: lastlastBookingId,
                     );
 
                     // Call cancel API
@@ -753,7 +770,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                     if (success) {
                       // Clear ride storage and SharedPreferences
                       await RideStorage.clearRideData();
-                      await prefs.remove("lastBookingId");
+                      await prefs.remove("lastlastBookingId");
 
                       // Clear all related Riverpod providers
                       ref.read(rideOtpProvider.notifier).state = '';
@@ -821,4 +838,36 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
 
 
+}
+
+class FullScreenLoader extends StatelessWidget {
+  final String message;
+  const FullScreenLoader({this.message = "Loading...", super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        color: Colors.white,
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(
+              color: Colors.deepPurple,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: Colors.deepPurple,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

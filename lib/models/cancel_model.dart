@@ -1,15 +1,15 @@
 class CancelModel {
-  final String Bookingid;
+  final String lastBookingId;
   final String decline_reason;
 
   CancelModel({
-    required this.Bookingid,
+    required this.lastBookingId,
     required this.decline_reason,
   });
 
   Map<String, dynamic> toMap() {
     return {
-      "Bookingid": Bookingid,
+      "lastBookingId": lastBookingId,
       "decline_reason": decline_reason,
     };
   }

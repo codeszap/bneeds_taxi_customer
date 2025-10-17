@@ -10,6 +10,7 @@ import '../models/cancel_model.dart';
 class BookingRepository {
   final Dio _dio = ApiClient().dio;
 
+
   Future<int?> addBooking(BookingModel booking) async {
     try {
       final payload = {
@@ -22,46 +23,25 @@ class BookingRepository {
         options: Options(headers: {"Content-Type": "application/json"}),
       );
 
-      print("Status code: ${response.statusCode}");
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        var data = response.data;
 
-      dynamic data;
+        // 🚀 check if data is string, then decode
+        if (data is String) {
+          data = jsonDecode(data);
+        }
 
-      if (response.data is String) {
-        try {
-          String raw = response.data.toString();
-          print("Raw Response: $raw");
+        final bookingId = data['bookingId'] as int?;
 
-          // 🔧 Fix malformed JSON => "bookingId":19"Insert Successfully"
-          raw = raw.replaceAllMapped(
-            RegExp(r'"bookingId":(\d+)"([^"]+)"'),
-            (match) =>
-                '"bookingId":${match.group(1)},"message":"${match.group(2)}"',
-          );
-
-          data = jsonDecode(raw);
-        } catch (e) {
-          print("Response is not valid JSON: ${response.data}");
-          data = {"status": "error", "message": response.data};
+        if (bookingId != null) {
+          print("Booking saved successfully with ID: $bookingId");
+          return bookingId;
+        } else {
+          print("Error: 'bookingId' not found in the response.");
+          return null;
         }
       } else {
-        data = response.data;
-      }
-
-      print("Response data: $data");
-
-      final status = data['status'] ?? 'unknown';
-      final message = data['message'] ?? 'No message';
-      final bookingId = data['bookingId'];
-
-      print("API Status: $status");
-      print("API Message: $message");
-      print("Booking ID: $bookingId");
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        print("Booking saved successfully");
-        return bookingId; // ✅ return bookingId
-      } else {
-        print("Error saving booking");
+        print("Error saving booking with status code: ${response.statusCode}");
         return null;
       }
     } catch (e) {
@@ -69,6 +49,7 @@ class BookingRepository {
       rethrow;
     }
   }
+
 
   Future<bool> cancelBooking(CancelModel cancel) async {
     try {
