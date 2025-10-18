@@ -1,7 +1,7 @@
 import 'package:bneeds_taxi_customer/providers/location_provider.dart'
     show fromLocationProvider, toLocationProvider, selectedServiceProvider;
 import 'package:bneeds_taxi_customer/providers/vehicle_subtype_provider.dart';
-import 'package:bneeds_taxi_customer/screens/ConfirmRideScreen.dart';
+import 'package:bneeds_taxi_customer/screens/confirm_ride_screen.dart';
 import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

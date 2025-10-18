@@ -1,4 +1,4 @@
-import 'package:bneeds_taxi_customer/screens/DriverSearchingScreen.dart';
+import 'package:bneeds_taxi_customer/screens/driver_searching_screen.dart';
 import 'package:bneeds_taxi_customer/screens/home/HomeScreen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -9,8 +9,8 @@ import 'package:go_router/go_router.dart';
 
 import '../models/RideStorage.dart';
 import '../providers/ride_otp_provider.dart';
-import '../screens/RideCompleteScreen.dart';
-import '../screens/TrackingScreen.dart';
+import '../screens/ride_complete_screen.dart';
+import '../screens/tracking_screen.dart';
 
 /// Global navigator key (to show dialogs anywhere)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();

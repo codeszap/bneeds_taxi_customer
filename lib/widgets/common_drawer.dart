@@ -1,5 +1,5 @@
 import 'package:bneeds_taxi_customer/providers/profile_provider.dart';
-import 'package:bneeds_taxi_customer/screens/ProfileScreen.dart';
+import 'package:bneeds_taxi_customer/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';

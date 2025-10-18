@@ -8,8 +8,10 @@ import 'package:go_router/go_router.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../utils/constants.dart';
+
 // Google Places API Key
-const String _googleApiKey = 'AIzaSyAWzUqf3Z8xvkjYV7F4gOGBBJ5d_i9HZhs';
+//const String _googleApiKey = 'AIzaSyAWzUqf3Z8xvkjYV7F4gOGBBJ5d_i9HZhs';
 
 // Recent locations
 final recentLocationsProvider =
@@ -24,7 +26,7 @@ final placeSuggestionsProvider = FutureProvider.family<List<String>, String>((
 ) async {
   if (query.isEmpty) return [];
   final url = Uri.parse(
-    'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${Uri.encodeComponent(query)}&key=$_googleApiKey&components=country:in',
+    'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${Uri.encodeComponent(query)}&key=${Strings.googleApiKey}&components=country:in',
   );
 
   final response = await http.get(url);

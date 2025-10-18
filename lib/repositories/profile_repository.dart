@@ -105,7 +105,6 @@ class ProfileRepository {
     final String url = "${ApiEndpoints.userProfile}?action=U";
 
     final body = {
-      // Note the key name: 'userprofileupdate' as expected by the C# RootObject
       "userprofileupdate": [profile.toJson()],
     };
 
@@ -149,7 +148,7 @@ class ProfileRepository {
 
 
   Future<List<DriverProfile>> getDriverDetail({required String mobileno}) async {
-    final url = "frmRiderProfileApi.aspx?action=L&mobileno=$mobileno";
+    final url = "${ApiEndpoints.driverProfile}?action=L&mobileno=$mobileno";
 
     try {
       final response = await _dio.get(url);
@@ -180,7 +179,7 @@ class ProfileRepository {
     required String riderStatus,
   }) async {
     final String url =
-        "frmRiderProfileApi.aspx?action=G&VehsubTypeid=$vehSubTypeId&riderstatus=$riderStatus";
+        "${ApiEndpoints.driverProfile}?action=G&VehsubTypeid=$vehSubTypeId&riderstatus=$riderStatus";
 
     print("📡 Fetch Nearby Drivers API URL: ${_dio.options.baseUrl}$url");
 
@@ -208,18 +207,6 @@ class ProfileRepository {
       print("❌ Error fetching nearby drivers: $e");
       return [];
     }
-  }
-
-  Future<List<Map<String, dynamic>>> getDriverNearbyRaw({
-    required String vehSubTypeId,
-    required String riderStatus,
-  }) async {
-    final url =
-        "frmRiderProfileApi.aspx?action=G&VehsubTypeid=$vehSubTypeId&riderstatus=$riderStatus";
-
-    final response = await _dio.get(url);
-    final data = response.data is String ? jsonDecode(response.data) : response.data;
-    return List<Map<String, dynamic>>.from(data['data'] ?? []);
   }
 
   Future<int?> updateFcmToken({

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:bneeds_taxi_customer/models/user_profile_model.dart';
+import 'package:bneeds_taxi_customer/utils/constants.dart';
 import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -206,7 +207,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final controller = await _controller.future;
 
     try {
-      const googleApiKey = "AIzaSyAWzUqf3Z8xvkjYV7F4gOGBBJ5d_i9HZhs";
+      //const googleApiKey = "AIzaSyAWzUqf3Z8xvkjYV7F4gOGBBJ5d_i9HZhs";
       List<LatLng> points = [];
       final tripStarted = ref.read(tripStartedProvider);
 
@@ -218,7 +219,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         points = await _getRoutePolyline(
           origin: origin,
           destination: destination,
-          apiKey: googleApiKey,
+          apiKey: Strings.googleApiKey,
         );
       } else {
         // Pickup → Drop
@@ -231,7 +232,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             points = await _getRoutePolyline(
               origin: origin,
               destination: destination,
-              apiKey: googleApiKey,
+              apiKey: Strings.googleApiKey,
             );
           }
         }
@@ -273,82 +274,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     }
     return LatLngBounds(southwest: LatLng(x0!, y0!), northeast: LatLng(x1!, y1!));
   }
-
-
-  // Future<void> _updatePolyline() async {
-  //   if (_driverLatLng == null || _customerLatLng == null) return;
-  //   if (!_controller.isCompleted) return;
-  //   final controller = await _controller.future;
-  //   try {
-  //     const googleApiKey = "AIzaSyAWzUqf3Z8xvkjYV7F4gOGBBJ5d_i9HZhs";
-  //     List<LatLng> points = [];
-  //     final tripStarted = ref.read(tripStartedProvider);
-  //
-  //     LatLng origin = _driverLatLng!;
-  //     LatLng destination = _customerLatLng!;
-  //
-  //     if (!tripStarted) {
-  //       // Driver → Pickup
-  //       points = await _getRoutePolyline(
-  //         origin: _driverLatLng!,
-  //         destination: _customerLatLng!,
-  //         apiKey: googleApiKey,
-  //       );
-  //     } else {
-  //       // Pickup → Drop
-  //       final dropLatLngStr = ref.read(dropLatLngProvider);
-  //       if (dropLatLngStr != null && dropLatLngStr.isNotEmpty) {
-  //         final latLngList = dropLatLngStr.replaceAll(RegExp(r'[^\d.,-]'), '').split(',');
-  //         if (latLngList.length == 2) {
-  //           origin = _customerLatLng!;
-  //           destination = LatLng(double.parse(latLngList[0]), double.parse(latLngList[1]));
-  //           points = await _getRoutePolyline(
-  //             origin: origin,
-  //             destination: destination,
-  //             apiKey: googleApiKey,
-  //           );
-  //         }
-  //       }
-  //     }
-  //
-  //     setState(() {
-  //       _polylines
-  //         ..clear()
-  //         ..add(
-  //           Polyline(
-  //             polylineId: const PolylineId('route'),
-  //             points: points,
-  //             width: 5,
-  //             color: Colors.deepPurple,
-  //           ),
-  //         );
-  //     });
-  //
-  //     // Move camera to include both markers
-  //     final controller = await _controller.future;
-  //
-  //     LatLngBounds bounds;
-  //     if (origin.latitude > destination.latitude && origin.longitude > destination.longitude) {
-  //       bounds = LatLngBounds(southwest: destination, northeast: origin);
-  //     } else if (origin.longitude > destination.longitude) {
-  //       bounds = LatLngBounds(
-  //           southwest: LatLng(origin.latitude, destination.longitude),
-  //           northeast: LatLng(destination.latitude, origin.longitude));
-  //     } else if (origin.latitude > destination.latitude) {
-  //       bounds = LatLngBounds(
-  //           southwest: LatLng(destination.latitude, origin.longitude),
-  //           northeast: LatLng(origin.latitude, destination.longitude));
-  //     } else {
-  //       bounds = LatLngBounds(southwest: origin, northeast: destination);
-  //     }
-  //
-  //     controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100)); // 100 padding
-  //   } catch (e) {
-  //     print("Failed to fetch route: $e");
-  //   }
-  // }
-
-
 
 
   Future<List<LatLng>> _getRoutePolyline({

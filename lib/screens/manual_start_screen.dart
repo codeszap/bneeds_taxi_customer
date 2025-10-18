@@ -7,7 +7,7 @@ import '../providers/ride_otp_provider.dart';
 import '../providers/ride_otp_provider.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/ride_otp_provider.dart';
-import 'TrackingScreen.dart';
+import 'tracking_screen.dart';
 
 class ManualStartScreen extends ConsumerWidget {
   const ManualStartScreen({super.key});

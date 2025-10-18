@@ -49,8 +49,6 @@ class BookingRepository {
       rethrow;
     }
   }
-
-
   Future<bool> cancelBooking(CancelModel cancel) async {
     try {
       final payload = {

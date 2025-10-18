@@ -75,12 +75,12 @@ class ConfirmRideScreen extends ConsumerWidget {
 
       final rideDate = isScheduled
           ? DateTime(
-        selectedDate.year,
-        selectedDate.month,
-        selectedDate.day,
-        selectedTime.hour,
-        selectedTime.minute,
-      )
+              selectedDate.year,
+              selectedDate.month,
+              selectedDate.day,
+              selectedTime.hour,
+              selectedTime.minute,
+            )
           : DateTime.now();
 
       final rideDateStr =
@@ -127,7 +127,7 @@ class ConfirmRideScreen extends ConsumerWidget {
         if (lastBookingId != null) {
           await SharedPrefsHelper.setLastBookingId(lastBookingId.toString());
 
-          if(isScheduled) {
+          if (isScheduled) {
             // Show success SnackBar
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Trip Booked Successfully")),
@@ -148,15 +148,13 @@ class ConfirmRideScreen extends ConsumerWidget {
         // Close loading dialog if error
         Navigator.of(context, rootNavigator: true).pop();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to confirm ride: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to confirm ride: $e")));
       } finally {
         isBooking = false;
       }
     }
-
-
 
     return MainScaffold(
       title: "Confirm Ride",
@@ -614,7 +612,7 @@ class ConfirmRideScreen extends ConsumerWidget {
                                   child: ElevatedButton(
                                     onPressed: () {
                                       Navigator.pop(context);
-                                      confirmBooking(context,ref);
+                                      confirmBooking(context, ref);
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.deepPurple,

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:bneeds_taxi_customer/screens/RideCompleteScreen.dart';
+import 'package:bneeds_taxi_customer/screens/ride_complete_screen.dart';
 import 'package:bneeds_taxi_customer/widgets/common_drawer.dart';
 import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';

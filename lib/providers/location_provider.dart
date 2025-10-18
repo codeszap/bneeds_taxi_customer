@@ -2,7 +2,7 @@
 import 'dart:convert';
 
 import 'package:bneeds_taxi_customer/models/location_data.dart';
-import 'package:bneeds_taxi_customer/screens/SelectLocationScreen.dart';
+import 'package:bneeds_taxi_customer/screens/select_location_screen.dart';
 import 'package:bneeds_taxi_customer/utils/constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';

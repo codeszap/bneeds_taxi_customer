@@ -5,12 +5,13 @@ import 'package:bneeds_taxi_customer/models/location_data.dart';
 import 'package:bneeds_taxi_customer/models/vehicle_subtype_model.dart';
 import 'package:bneeds_taxi_customer/providers/location_provider.dart';
 import 'package:bneeds_taxi_customer/providers/vehicle_subtype_provider.dart';
-import 'package:bneeds_taxi_customer/screens/ConfirmRideScreen.dart'
+import 'package:bneeds_taxi_customer/screens/confirm_ride_screen.dart'
     hide selectedServiceProvider;
-import 'package:bneeds_taxi_customer/screens/SelectLocationScreen.dart'
+import 'package:bneeds_taxi_customer/screens/select_location_screen.dart'
     hide recentLocationsProvider, placeSuggestionsProvider;
 import 'package:bneeds_taxi_customer/screens/home/widget/LocationField.dart';
 import 'package:bneeds_taxi_customer/utils/constants.dart';
+import 'package:bneeds_taxi_customer/widgets/common_button.dart';
 
 import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
@@ -82,6 +83,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   //Map<String, dynamic>? _routeInfo; // distance/time
   RouteInfo? _routeInfo;
   Timer? _debounce;
+  int? _tappedCardIndex;
 
   @override
   void initState() {
@@ -427,7 +429,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     itemCount: list.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
-                      final suggestion = list[index]; // PlaceSuggestion object
+                      final suggestion = list[index];
                       final isFrom = query == fromLocation;
 
                       return ListTile(
@@ -657,9 +659,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             final isSelected =
                                 selectedService != null &&
                                 selectedService['typeId'] == item.vehSubTypeId;
+                            final bool isTapped = _tappedCardIndex == index;
 
                             return GestureDetector(
                               onTap: () {
+                                _tappedCardIndex = index;
                                 ref
                                     .read(selectedServiceProvider.notifier)
                                     .state = {
@@ -686,43 +690,70 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                     ),
                                   ],
                                 ),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: Colors.deepPurple.shade100,
-                                    child: const Icon(
-                                      Icons.local_taxi,
-                                      color: Colors.deepPurple,
-                                    ),
-                                  ),
-                                  title: Text(
-                                    item.vehSubTypeName ?? '',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 17,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    "Distance: ${_routeInfo!.distanceKm.toStringAsFixed(2)} km · Est. Drop: ${_routeInfo!.durationText}",
+                                child: Column(
+                                  children: [
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Colors.deepPurple.shade100,
+                                        child: const Icon(
+                                          Icons.local_taxi,
+                                          color: Colors.deepPurple,
+                                        ),
+                                      ),
+                                      title: Text(
+                                        item.vehSubTypeName ?? '',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 17,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        "Distance: ${_routeInfo!.distanceKm.toStringAsFixed(2)} km · Est. Drop: ${_routeInfo!.durationText}",
 
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black54,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                      trailing: Text(
+                                        "₹${(item.totalKms == null || item.totalKms!.isEmpty) ? '00.0' : item.totalKms}",
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                  trailing: Text(
-                                    "₹${(item.totalKms == null || item.totalKms!.isEmpty) ? '00.0' : item.totalKms}",
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
+                                    if (isTapped)
+                                      SizedBox(height: 20,),
+                                    if (isTapped)
+                                    CommonButton( text: 'Check Available', onPressed: () {
+                                      final selectedService = ref.read(selectedServiceProvider);
+
+                                      if (selectedService != null) {
+                                        final subTypeId = selectedService['typeId'];
+
+                                        if (subTypeId != null) {
+                                          context.push('/check-available-on-map/$subTypeId');
+                                        } else {
+                                          // பிழை ஏற்பட்டால், ஒரு செய்தியைக் காட்டலாம்
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Could not get vehicle ID. Please try again.')),
+                                          );
+                                        }
+                                      }
+                                    },backgroundColor: Colors.green,foregroundColor: Colors.black,),
+                                    if (isTapped)
+                                      SizedBox(height: 20,),
+                                  ],
                                 ),
                               ),
                             );
                           },
                         ),
                         const SizedBox(height: 20),
+
+
 
                         // Book Ride Button
                         SizedBox(

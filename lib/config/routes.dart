@@ -1,23 +1,24 @@
-import 'package:bneeds_taxi_customer/screens/CustomerSupportScreen.dart';
-import 'package:bneeds_taxi_customer/screens/DriverSearchingScreen.dart';
-import 'package:bneeds_taxi_customer/screens/MyRidesScreen.dart';
-import 'package:bneeds_taxi_customer/screens/ProfileScreen.dart';
-import 'package:bneeds_taxi_customer/screens/RideCompleteScreen.dart';
-import 'package:bneeds_taxi_customer/screens/RideOnTripScreen.dart';
-import 'package:bneeds_taxi_customer/screens/SelectLocationScreen.dart';
-import 'package:bneeds_taxi_customer/screens/SelectOnMapScreen.dart';
-import 'package:bneeds_taxi_customer/screens/ServiceOptionsScreen.dart';
-import 'package:bneeds_taxi_customer/screens/TrackingScreen.dart';
-import 'package:bneeds_taxi_customer/screens/WalletScreen.dart';
+import 'package:bneeds_taxi_customer/screens/customer_support_screen.dart';
+import 'package:bneeds_taxi_customer/screens/driver_searching_screen.dart';
+import 'package:bneeds_taxi_customer/screens/my_rides_screen.dart';
+import 'package:bneeds_taxi_customer/screens/profile_screen.dart';
+import 'package:bneeds_taxi_customer/screens/ride_complete_screen.dart';
+import 'package:bneeds_taxi_customer/screens/ride_ontrip_screen.dart';
+import 'package:bneeds_taxi_customer/screens/select_location_screen.dart';
+import 'package:bneeds_taxi_customer/screens/select_onmap_screen.dart';
+import 'package:bneeds_taxi_customer/screens/service_options_screen.dart';
+import 'package:bneeds_taxi_customer/screens/tracking_screen.dart';
+import 'package:bneeds_taxi_customer/screens/wallet_screen.dart';
 import 'package:go_router/go_router.dart';
-import '../screens/ManualStartScreen.dart';
+import '../screens/check_available_onmap_screen.dart';
+import '../screens/manual_start_screen.dart';
 import '../screens/home/HomeScreen.dart';
 import '../screens/login_screen.dart';
 import '../screens/splash_screen.dart';
-import '../services/firebase_service.dart'; // 👈 navigatorKey is here
+import '../services/firebase_service.dart';
 
 final GoRouter router = GoRouter(
-  navigatorKey: navigatorKey, // 👈 put it here, not inside routes
+  navigatorKey: navigatorKey,
   initialLocation: '/',
   routes: [
     GoRoute(
@@ -82,6 +83,15 @@ final GoRouter router = GoRouter(
       path: '/select-on-map',
       builder: (context, state) => const SelectOnMapScreen(),
     ),
+
+    GoRoute(
+      path: '/check-available-on-map/:vehSubTypeId', // <--- ':vehSubTypeId' ஐச் சேர்க்கவும்
+      builder: (context, state) {
+        final vehSubTypeId = state.pathParameters['vehSubTypeId']!;
+        return CheckAvailableOnMapScreen(vehSubTypeId: vehSubTypeId); // <--- ID-ஐ constructor-க்கு அனுப்பவும்
+      },
+    ),
+
     GoRoute(
       path: '/ride-on-trip',
       builder: (context, state) => const RideOnTripScreen(),
