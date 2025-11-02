@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/RideStorage.dart';
 import '../providers/profile_provider.dart';
+import '../utils/fcmHelper.dart';
 import '../utils/sharedPrefrencesHelper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,55 +22,55 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void initState() {
     super.initState();
     _checkSession();
-    _initFCMToken();
+   // _initFCMToken();
   }
 
-  Future<void> _initFCMToken() async {
-    try {
-      final prefsFcmToken = await SharedPrefsHelper.getFcmToken();
-      final mobileNo = await SharedPrefsHelper.getMobileNo();
-      final userId = await SharedPrefsHelper.getUserId();
-      if (userId.isEmpty) {
-        debugPrint("⚠️ User Id not found. Cannot update FCM token.");
-      } else {
-        debugPrint("✅ User Id found: $userId");
-      }
-      if (mobileNo.isEmpty) {
-        debugPrint(
-          "⚠️ Driver mobile number not found. Cannot update FCM token.",
-        );
-        return;
-      }
-      if (prefsFcmToken.isEmpty) {
-        final fcmToken = await FirebaseMessaging.instance.getToken();
-
-        if (fcmToken != null && fcmToken.isNotEmpty) {
-          debugPrint("✅ New FCM Token fetched: $fcmToken");
-
-          final repo = ref.read(updateFcmTokenProvider);
-          final response = await repo.updateFcmToken(
-            mobileNo: mobileNo,
-            tokenKey: fcmToken,
-          );
-
-          if (response != null) {
-            await SharedPrefsHelper.setFcmToken(fcmToken);
-            debugPrint(
-              "✅ FCM Token successfully updated on server and saved locally.",
-            );
-          } else {
-            debugPrint("⚠️ Failed to update FCM token on the server.");
-          }
-        } else {
-          debugPrint("⚠️ Failed to fetch new FCM Token from Firebase.");
-        }
-      } else {
-        debugPrint("✅ FCM Token already exists locally.");
-      }
-    } catch (e) {
-      debugPrint("❌ An error occurred in _initFCMToken: $e");
-    }
-  }
+  // Future<void> _initFCMToken() async {
+  //   try {
+  //     final prefsFcmToken = await SharedPrefsHelper.getFcmToken();
+  //     final mobileNo = await SharedPrefsHelper.getMobileNo();
+  //     final userId = await SharedPrefsHelper.getUserId();
+  //     if (userId.isEmpty) {
+  //       debugPrint("⚠️ User Id not found. Cannot update FCM token.");
+  //     } else {
+  //       debugPrint("✅ User Id found: $userId");
+  //     }
+  //     if (mobileNo.isEmpty) {
+  //       debugPrint(
+  //         "⚠️ Driver mobile number not found. Cannot update FCM token.",
+  //       );
+  //       return;
+  //     }
+  //     if (prefsFcmToken.isEmpty) {
+  //       final fcmToken = await FirebaseMessaging.instance.getToken();
+  //
+  //       if (fcmToken != null && fcmToken.isNotEmpty) {
+  //         debugPrint("✅ New FCM Token fetched: $fcmToken");
+  //
+  //         final repo = ref.read(updateFcmTokenProvider);
+  //         final response = await repo.updateFcmToken(
+  //           mobileNo: mobileNo,
+  //           tokenKey: fcmToken,
+  //         );
+  //
+  //         if (response != null) {
+  //           await SharedPrefsHelper.setFcmToken(fcmToken);
+  //           debugPrint(
+  //             "✅ FCM Token successfully updated on server and saved locally.",
+  //           );
+  //         } else {
+  //           debugPrint("⚠️ Failed to update FCM token on the server.");
+  //         }
+  //       } else {
+  //         debugPrint("⚠️ Failed to fetch new FCM Token from Firebase.");
+  //       }
+  //     } else {
+  //       debugPrint("✅ FCM Token already exists locally.");
+  //     }
+  //   } catch (e) {
+  //     debugPrint("❌ An error occurred in _initFCMToken: $e");
+  //   }
+  // }
 
   Future<void> _checkSession() async {
     final prefs = await SharedPreferences.getInstance();
@@ -93,6 +94,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     if (tripStarted || tripAccepted) {
       context.go('/tracking');
     } else if (mobileNo != null && mobileNo.isNotEmpty) {
+      await FcmHelper.syncTokenWithServer();
       if (isProfileCompleted) {
         context.go('/home');
       } else {

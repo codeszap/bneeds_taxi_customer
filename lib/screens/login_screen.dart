@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/app_colors.dart';
+import '../utils/fcmHelper.dart';
 import '../widgets/common_textfield.dart';
 import '../widgets/common_button.dart';
 
@@ -334,7 +335,7 @@ class _OTPDialogState extends State<OTPDialog> {
 
         // ✅ Save with isProfileCompleted
         await _saveMobileNo(mobileNo, username, userExists);
-
+        await FcmHelper.syncTokenWithServer();
         Navigator.pop(context); // close OTP dialog
         print("User exists: $userExists");
 

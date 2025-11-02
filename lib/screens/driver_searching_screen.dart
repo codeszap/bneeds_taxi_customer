@@ -38,103 +38,12 @@ class DriverSearchNotifier extends StateNotifier<DriverSearchState> {
     drivers = [];
   }
 
-  // Future<void> beginSearch(String vehSubTypeId) async {
-  //   try {
-  //     state = DriverSearchState(status: DriverSearchStatus.loading);
-  //     _isCancelled = false;
-  //
-  //     // 1️⃣ Fetch online drivers
-  //     drivers = await ProfileRepository().getDriverNearby(
-  //       vehSubTypeId: vehSubTypeId,
-  //       riderStatus: "OL",
-  //     );
-  //
-  //     if (drivers.isEmpty) {
-  //       state = DriverSearchState(status: DriverSearchStatus.error);
-  //       return;
-  //     }
-  //
-  //     // 2️⃣ Get customer locations
-  //     final fromLatLng = ref.read(fromLatLngProvider);
-  //     final toLatLng = ref.read(toLatLngProvider);
-  //
-  //     if (fromLatLng == null || toLatLng == null) {
-  //       print("❌ Customer location not set!");
-  //       state = DriverSearchState(status: DriverSearchStatus.error);
-  //       return;
-  //     }
-  //
-  //     final fromLatLongStr = "${fromLatLng.latitude},${fromLatLng.longitude}";
-  //     final toLatLongStr = "${toLatLng.latitude},${toLatLng.longitude}";
-  //
-  //     final fromLocation = ref.read(fromLocationProvider);
-  //     final toLocation = ref.read(toLocationProvider);
-  //     final amount = double.tryParse(ref.read(selectedServiceProvider)?['price'] ?? '0') ?? 0;
-  //
-  //     final prefs = await SharedPreferences.getInstance();
-  //     final fcmToken = prefs.getString('fcmToken') ?? '';
-  //     final lastlastBookingId = prefs.getString("lastlastBookingId") ?? '';
-  //     final userId = prefs.getString('userid') ?? '';
-  //     final mobileNo = prefs.getString('mobileno') ?? '';
-  //
-  //     state = DriverSearchState(status: DriverSearchStatus.searching);
-  //
-  //     // 3️⃣ Send push to all drivers concurrently
-  //     final futures = drivers.map((driver) async {
-  //       if (_isCancelled || driver.tokenKey.isEmpty) return false;
-  //
-  //       state = DriverSearchState(status: DriverSearchStatus.sending);
-  //
-  //       final success = await FirebasePushService.sendPushNotification(
-  //         fcmToken: driver.tokenKey,
-  //         title: "New Ride Request",
-  //         body: "Pickup: $fromLocation\nDrop: $toLocation\nFare: ₹$amount",
-  //         data: {
-  //           "pickuplatlong": fromLatLongStr,       // driver expects "lat,lng"
-  //           "droplatlong": toLatLongStr,           // driver expects "lat,lng"
-  //           "pickup": fromLocation.toString(),
-  //           "drop": toLocation.toString(),
-  //           "fare": amount.toString(),
-  //           "vehTypeId": ref.read(selectedServiceProvider)?['typeId'] ?? '',
-  //           "lastBookingId": lastlastBookingId,
-  //           "token": fcmToken,
-  //           "userId": userId,
-  //           "userMobNo": mobileNo,
-  //         },
-  //       );
-  //
-  //       print(
-  //         success
-  //             ? "✅ Ride request sent to ${driver.riderName}"
-  //             : "❌ Ride request FAILED for ${driver.riderName}",
-  //       );
-  //
-  //       // Wait 30s for driver to accept
-  //       final accepted = await _waitForDriverResponse(const Duration(seconds: 30));
-  //       return accepted;
-  //     }).toList();
-  //
-  //     // 4️⃣ Check if any driver accepted
-  //     final results = await Future.wait(futures);
-  //     if (results.any((accepted) => accepted)) {
-  //       markDriverFound();
-  //     } else if (!_isCancelled) {
-  //       state = DriverSearchState(status: DriverSearchStatus.error);
-  //     }
-  //
-  //   } catch (e) {
-  //     print("❌ Driver search error: $e");
-  //     state = DriverSearchState(status: DriverSearchStatus.error);
-  //   }
-  // }
-
-
   Future<void> beginSearch(String vehSubTypeId) async {
     try {
       state = DriverSearchState(status: DriverSearchStatus.loading);
       _isCancelled = false;
 
-      // 1️⃣ Fetch online drivers
+      // 1. ஓட்டுநர்களைப் பெறுதல்
       drivers = await ProfileRepository().getDriverNearby(
         vehSubTypeId: vehSubTypeId,
         riderStatus: "OL",
@@ -145,79 +54,115 @@ class DriverSearchNotifier extends StateNotifier<DriverSearchState> {
         return;
       }
 
+      // இங்கு தூரத்தின் அடிப்படையில் வரிசைப்படுத்துவது மிகவும் முக்கியம்
+      // drivers.sort((a, b) => a.distance.compareTo(b.distance));
+
+      // 2. சவாரித் தகவல்களைத் திரட்டுதல் (உங்கள் கோடில் இருந்து...)
+      // ... (fromLatLng, toLatLng, amount, fcmToken போன்ற அனைத்தும் அப்படியே)
       final fromLatLng = ref.read(fromLatLngProvider);
       final toLatLng = ref.read(toLatLngProvider);
       if (fromLatLng == null || toLatLng == null) {
         state = DriverSearchState(status: DriverSearchStatus.error);
         return;
       }
-
       final fromLatLongStr = "${fromLatLng.latitude},${fromLatLng.longitude}";
       final toLatLongStr = "${toLatLng.latitude},${toLatLng.longitude}";
       final fromLocation = ref.read(fromLocationProvider);
       final toLocation = ref.read(toLocationProvider);
       final amount = double.tryParse(ref.read(selectedServiceProvider)?['price'] ?? '0') ?? 0;
-
-     // final prefs = await SharedPreferences.getInstance();
       final fcmToken = await SharedPrefsHelper.getFcmToken() ?? '';
       final lastBookingId = await SharedPrefsHelper.getLastBookingId() ?? '';
       final userId = await SharedPrefsHelper.getUserId();
       final mobileNo = await SharedPrefsHelper.getMobileNo() ?? '';
 
-      if(fcmToken != null){
 
+      state = DriverSearchState(status: DriverSearchStatus.searching);
+
+      // 3. ஓட்டுநர்களைக் குழுக்களாகப் பிரித்தல் (ஒரு குழுவிற்கு 3 பேர்)
+      const int groupSize = 3;
+      final List<List<DriverProfile>> driverGroups = [];
+      for (var i = 0; i < drivers.length; i += groupSize) {
+        driverGroups.add(
+          drivers.sublist(i, min(i + groupSize, drivers.length)),
+        );
       }
 
-
-
-      state = DriverSearchState(status: DriverSearchStatus.sending);
-
-      // 2️⃣ Send push to all drivers in parallel
-      for (var driver in drivers) {
-        if (driver.tokenKey.isNotEmpty) {
-          FirebasePushService.sendPushNotification(
-            fcmToken: driver.tokenKey,
-            title: "New Ride Request",
-            body: "Pickup: $fromLocation\nDrop: $toLocation\nFare: ₹$amount",
-            data: {
-              "pickuplatlong": fromLatLongStr,
-              "droplatlong": toLatLongStr,
-              "pickup": fromLocation.toString(),
-              "drop": toLocation.toString(),
-              "fare": amount.toString(),
-              "vehTypeId": ref.read(selectedServiceProvider)?['typeId'] ?? '',
-              "bookingId": lastBookingId,
-              "token": fcmToken,
-              "userId": userId,
-              "userMobNo": mobileNo,
-              "duration": "30",
-              "sound": "ride_request",
-            },
-            android: {
-              "priority": "HIGH",
-              "notification": {
-                "channel_id": "ride_request_channel",
-                "click_action": "" // optional, can be left empty
-              }
-            },
-          );
+      // 4. ஒவ்வொரு குழுவாக நோட்டிபிகேஷன் அனுப்புதல்
+      for (var group in driverGroups) {
+        if (_isCancelled) {
+          print("🟡 Search was cancelled.");
+          return;
         }
+
+        print("--> Sending request to a new group of ${group.length} drivers.");
+        state = DriverSearchState(status: DriverSearchStatus.sending);
+
+        // தற்போதைய குழுவில் உள்ள ஓட்டுநர்களுக்கு ஒரே நேரத்தில் அனுப்புதல்
+        for (var driver in group) {
+          if (driver.tokenKey.isNotEmpty) {
+            FirebasePushService.sendPushNotification(
+              fcmToken: driver.tokenKey,
+              title: "New Ride Request",
+              body: "Pickup: $fromLocation\nDrop: $toLocation\nFare: ₹$amount",
+              data: {
+                "pickuplatlong": fromLatLongStr,
+                "droplatlong": toLatLongStr,
+                "pickup": fromLocation.toString(),
+                "drop": toLocation.toString(),
+                "fare": amount.toString(),
+                "vehTypeId": ref.read(selectedServiceProvider)?['typeId'] ?? '',
+                "bookingId": lastBookingId,
+                "token": fcmToken,
+                "userId": userId,
+                "userMobNo": mobileNo,
+                "duration": "20", // கால அளவு குறைக்கப்பட்டுள்ளது
+                "sound": "ride_request",
+              },
+              android: {
+                "priority": "HIGH",
+                "notification": {"channel_id": "ride_request_channel"},
+              },
+            );
+          }
+        }
+
+        // 5. இந்த குழுவிற்காக ஒரு குறுகிய நேரம் (20 வினாடிகள்) காத்திருத்தல்
+        final accepted = await _waitForDriverResponse(const Duration(seconds: 20));
+
+        if (accepted) {
+          print("✅ Ride accepted by a driver in the group!");
+          markDriverFound();
+          return; // தேடல் முடிந்தது
+        }
+
+        print("ℹ️ No one from the current group accepted. Trying next group...");
       }
 
-
-      // 3️⃣ Wait for max 30 seconds globally
-      final accepted = await _waitForAnyDriverResponse(const Duration(seconds: 40));
-
-      if (accepted) {
-        markDriverFound();
-      } else if (!_isCancelled) {
+      // எல்லா குழுக்களும் முயற்சி செய்தும் யாரும் ஏற்கவில்லை என்றால்
+      if (!_isCancelled) {
+        print("❌ No drivers accepted the ride from any group.");
         state = DriverSearchState(status: DriverSearchStatus.error);
       }
     } catch (e) {
       state = DriverSearchState(status: DriverSearchStatus.error);
-      print("❌ Driver search error: $e");
+      print("❌ An error occurred during driver search: $e");
     }
   }
+
+// இந்தக் காத்திருப்பு ஃபங்ஷன் அப்படியே இருக்கலாம்
+  Future<bool> _waitForDriverResponse(Duration timeout) async {
+    int elapsed = 0;
+    while (elapsed < timeout.inSeconds) {
+      if (_isCancelled) return false;
+      if (state.status == DriverSearchStatus.found) return true;
+      await Future.delayed(const Duration(seconds: 1));
+      elapsed++;
+    }
+    return false;
+  }
+
+
+
 
 // Global wait function
   Future<bool> _waitForAnyDriverResponse(Duration timeout) async {
