@@ -6,15 +6,16 @@ import 'package:bneeds_taxi_customer/models/booking_model.dart';
 import 'package:dio/dio.dart';
 
 import '../models/cancel_model.dart';
+import '../models/get_booking_model.dart';
+import '../providers/params/booking_params.dart';
 
 class BookingRepository {
   final Dio _dio = ApiClient().dio;
 
-
   Future<int?> addBooking(BookingModel booking) async {
     try {
       final payload = {
-        "vehbookingDet": [booking.toMap()]
+        "vehbookingDet": [booking.toMap()],
       };
 
       final response = await _dio.post(
@@ -49,10 +50,11 @@ class BookingRepository {
       rethrow;
     }
   }
+
   Future<bool> cancelBooking(CancelModel cancel) async {
     try {
       final payload = {
-        "vehbookingdecline": [cancel.toMap()]
+        "vehbookingdecline": [cancel.toMap()],
       };
 
       final response = await _dio.post(
@@ -100,4 +102,29 @@ class BookingRepository {
     }
   }
 
+  Future<List<GetBookingDetail>> fetchBookingDetail(
+    int bookingId,
+    int riderId,
+  ) async {
+    try {
+      final response = await _dio.get(
+        '${ApiEndpoints.getBookingStatus}&Bookingid=$bookingId&Riderid=$riderId',
+      );
+
+      dynamic resData = response.data;
+      if (resData is String) resData = jsonDecode(resData);
+
+      if (resData is Map<String, dynamic>) {
+        if (resData['status'] == 'success' && resData['data'] is List) {
+          final list = resData['data'] as List<dynamic>;
+          return list.map((e) => GetBookingDetail.fromJson(e)).toList();
+        }
+      }
+
+      return [];
+    } catch (e) {
+      print('❌ Error fetching booking details: $e');
+      return [];
+    }
+  }
 }

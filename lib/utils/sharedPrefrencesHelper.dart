@@ -7,6 +7,7 @@ class SharedPrefsKeys {
   static const String userId = "userid";
   static const String driverTimer = "driverTimer";
   static const String lastBookingId = "lastBookingId";
+  static const String bookingId = "bookingId";
   static const String ongoingTrip = "ongoingTrip";
   static const String mobileno = "mobileno";
   static const String driverName = "driverName";
@@ -25,6 +26,11 @@ class SharedPrefsHelper {
   }
 
   static Future<void> setRiderId(String riderId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(SharedPrefsKeys.riderId, riderId);
+  }
+
+  static Future<void> setBookingId(String riderId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(SharedPrefsKeys.riderId, riderId);
   }
@@ -90,10 +96,15 @@ class SharedPrefsHelper {
     return prefs.getString(SharedPrefsKeys.riderId) ?? "";
   }
 
-  static Future<String?> getLastBookingId() async {
+  static Future<String> getBookingId() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(SharedPrefsKeys.lastBookingId);
+    return prefs.getString(SharedPrefsKeys.bookingId) ?? "";
   }
+
+  // static Future<String?> getLastBookingId() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   return prefs.getString(SharedPrefsKeys.lastBookingId);
+  // }
 
   static Future<String> getUserId() async {
     final prefs = await SharedPreferences.getInstance();
@@ -164,5 +175,10 @@ class SharedPrefsHelper {
   static Future<void> clearRiderId() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(SharedPrefsKeys.riderId);
+  }
+
+  static Future<void> clearBookingId() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(SharedPrefsKeys.bookingId);
   }
 }

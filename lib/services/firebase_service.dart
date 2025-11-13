@@ -11,6 +11,7 @@ import '../models/RideStorage.dart';
 import '../providers/ride_otp_provider.dart';
 import '../screens/ride_complete_screen.dart';
 import '../screens/tracking_screen.dart';
+import '../utils/sharedPrefrencesHelper.dart';
 
 /// Global navigator key (to show dialogs anywhere)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -118,11 +119,14 @@ Future<void> requestNotificationPermissions() async {
 Future<void> _handleIncomingPush(RemoteMessage message, {bool openedFromTray = false}) async {
   final data = message.data;
   final status = data['status'] ?? '';
-  final lastBookingId = data['lastBookingId'] ?? '';
   final otp = data['otp'] ?? '';
-  final driverLatLong = data['driverLatLong'] ?? '';
-  final driverMobno = data['driverMobno'] ?? '';
-  final dropLatLong = data['dropLatLong'] ?? '';
+  final bookingId = data['bookingId'] ?? '';
+  final riderId = data['riderId'] ?? '';
+
+  await SharedPrefsHelper.setBookingId(bookingId.toString());
+  await SharedPrefsHelper.setRiderId(riderId.toString());
+  print("Status: $bookingId");
+  print("OTP: $riderId");
 
   final context = navigatorKey.currentContext;
   if (context == null) return;
@@ -130,53 +134,53 @@ Future<void> _handleIncomingPush(RemoteMessage message, {bool openedFromTray = f
   final container = ProviderScope.containerOf(context, listen: false);
 
   if (status == 'accepted') {
-    // Save OTP
-    container.read(rideOtpProvider.notifier).state = otp;
-    await RideStorage.saveRideOtp(otp);
-
-    // Save Driver LatLng
-    container.read(driverLatLongProvider.notifier).state = driverLatLong;
-    await RideStorage.saveDriverLatLong(driverLatLong);
-
-    // Save Driver Mobile Number
-    container.read(driverMobNoProvider.notifier).state = driverMobno;
-    await RideStorage.saveDriverMobNo(driverMobno);
-
-    container.read(dropLatLngProvider.notifier).state = dropLatLong;
-    await RideStorage.saveDropLatLong(dropLatLong);
-
-    // Mark driver found
-    container.read(driverSearchProvider.notifier).markDriverFound();
-    await RideStorage.saveTripAccepted(true);
+    // // Save OTP
+    // container.read(rideOtpProvider.notifier).state = otp;
+    // await RideStorage.saveRideOtp(otp);
+    //
+    // // Save Driver LatLng
+    // container.read(driverLatLongProvider.notifier).state = driverLatLong;
+    // await RideStorage.saveDriverLatLong(driverLatLong);
+    //
+    // // Save Driver Mobile Number
+    // container.read(driverMobNoProvider.notifier).state = driverMobno;
+    // await RideStorage.saveDriverMobNo(driverMobno);
+    //
+    // container.read(dropLatLngProvider.notifier).state = dropLatLong;
+    // await RideStorage.saveDropLatLong(dropLatLong);
+    //
+    // // Mark driver found
+    // container.read(driverSearchProvider.notifier).markDriverFound();
+    // await RideStorage.saveTripAccepted(true);
     _showRideAcceptedDialog(otp: otp);
   }
 
-  if (status == 'start trip') {
-    // Save OTP
-    container.read(rideOtpProvider.notifier).state = otp;
-    await RideStorage.saveRideOtp(otp);
-
-    // Save Driver LatLng
-    container.read(driverLatLongProvider.notifier).state = driverLatLong;
-    await RideStorage.saveDriverLatLong(driverLatLong);
-
-    // Save Drop LatLng
-    container.read(dropLatLngProvider.notifier).state = dropLatLong;
-    await RideStorage.saveDropLatLong(dropLatLong);
-
-    // Mark trip started
-    container.read(tripStartedProvider.notifier).state = true;
-    await RideStorage.saveTripStarted(true);
+  if (status == 'start_trip') {
+    // // Save OTP
+    // container.read(rideOtpProvider.notifier).state = otp;
+    // await RideStorage.saveRideOtp(otp);
+    //
+    // // Save Driver LatLng
+    // container.read(driverLatLongProvider.notifier).state = driverLatLong;
+    // await RideStorage.saveDriverLatLong(driverLatLong);
+    //
+    // // Save Drop LatLng
+    // container.read(dropLatLngProvider.notifier).state = dropLatLong;
+    // await RideStorage.saveDropLatLong(dropLatLong);
+    //
+    // // Mark trip started
+    // container.read(tripStartedProvider.notifier).state = true;
+    // await RideStorage.saveTripStarted(true);
 
     // Navigate to tracking screen
     GoRouter.of(context).go('/tracking');
   }
 
-  if (status == 'completed_trip') {
+  if (status == 'trip_completed') {
     final fareAmount = data['fareAmount'] ?? '0';
 
-    // Clear all saved ride data
-    await RideStorage.clearRideData();
+    await SharedPrefsHelper.clearRiderId();
+    await SharedPrefsHelper.clearBookingId();
 
     // Reset providers
     container.read(rideOtpProvider.notifier).state = '';
