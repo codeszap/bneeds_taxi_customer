@@ -47,7 +47,8 @@ Future<void> initFirebaseMessaging() async {
   // Android channel create
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
+        AndroidFlutterLocalNotificationsPlugin
+      >()
       ?.createNotificationChannel(channel);
 
   // Background handler
@@ -106,27 +107,27 @@ Future<void> initFirebaseMessaging() async {
 
 /// Ask runtime notification permission
 Future<void> requestNotificationPermissions() async {
-  NotificationSettings settings =
-      await FirebaseMessaging.instance.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
+  NotificationSettings settings = await FirebaseMessaging.instance
+      .requestPermission(alert: true, badge: true, sound: true);
   print("🔑 Permission: ${settings.authorizationStatus}");
 }
 
 /// Handle push data
-Future<void> _handleIncomingPush(RemoteMessage message, {bool openedFromTray = false}) async {
+Future<void> _handleIncomingPush(
+  RemoteMessage message, {
+  bool openedFromTray = false,
+}) async {
+  print("--------> call _handleIncomingPush firebase");
   final data = message.data;
   final status = data['status'] ?? '';
   final otp = data['otp'] ?? '';
   final bookingId = data['bookingId'] ?? '';
   final riderId = data['riderId'] ?? '';
 
-  await SharedPrefsHelper.setBookingId(bookingId.toString());
-  await SharedPrefsHelper.setRiderId(riderId.toString());
-  print("Status: $bookingId");
-  print("OTP: $riderId");
+  //  await SharedPrefsHelper.setBookingId(bookingId.toString());
+  //await SharedPrefsHelper.setRiderId(riderId.toString());
+  print("bookingId: $bookingId");
+  print("riderId: $riderId");
 
   final context = navigatorKey.currentContext;
   if (context == null) return;
@@ -134,6 +135,7 @@ Future<void> _handleIncomingPush(RemoteMessage message, {bool openedFromTray = f
   final container = ProviderScope.containerOf(context, listen: false);
 
   if (status == 'accepted') {
+    print("--------> call accepted firebase");
     // // Save OTP
     // container.read(rideOtpProvider.notifier).state = otp;
     // await RideStorage.saveRideOtp(otp);
@@ -152,7 +154,7 @@ Future<void> _handleIncomingPush(RemoteMessage message, {bool openedFromTray = f
     // // Mark driver found
     // container.read(driverSearchProvider.notifier).markDriverFound();
     // await RideStorage.saveTripAccepted(true);
-    _showRideAcceptedDialog(otp: otp);
+    _showRideAcceptedDialog(otp: otp, bookingId: bookingId, riderId: riderId);
   }
 
   if (status == 'start_trip') {
@@ -169,7 +171,7 @@ Future<void> _handleIncomingPush(RemoteMessage message, {bool openedFromTray = f
     // await RideStorage.saveDropLatLong(dropLatLong);
     //
     // // Mark trip started
-    // container.read(tripStartedProvider.notifier).state = true;
+    container.read(tripStartedProvider.notifier).state = true;
     // await RideStorage.saveTripStarted(true);
 
     // Navigate to tracking screen
@@ -177,10 +179,11 @@ Future<void> _handleIncomingPush(RemoteMessage message, {bool openedFromTray = f
   }
 
   if (status == 'trip_completed') {
-    final fareAmount = data['fareAmount'] ?? '0';
-
+    final fareAmount = data['finalAmt'] ?? '0';
+    print("---> final amount: ${fareAmount}");
     await SharedPrefsHelper.clearRiderId();
     await SharedPrefsHelper.clearBookingId();
+    await SharedPrefsHelper.saveTripAccepted(false);
 
     // Reset providers
     container.read(rideOtpProvider.notifier).state = '';
@@ -198,14 +201,17 @@ Future<void> _handleIncomingPush(RemoteMessage message, {bool openedFromTray = f
     );
   }
 
-  if (status == 'cancel ride') {
-    showRideCancelledDialog(context);
+  if (status == 'cancel_ride') {
+    showRideCancelledDialog();
   }
-
 }
 
 /// Show dialog when ride accepted
-void _showRideAcceptedDialog({required String otp}) {
+void _showRideAcceptedDialog({
+  required String otp,
+  required String bookingId,
+  required String riderId,
+}) {
   final context = navigatorKey.currentContext;
   if (context == null) return;
 
@@ -213,17 +219,12 @@ void _showRideAcceptedDialog({required String otp}) {
     context: context,
     barrierDismissible: false, // user must tap button
     builder: (ctx) => AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: const [
           Icon(Icons.check_circle, color: Colors.green, size: 28),
           SizedBox(width: 8),
-          Text(
-            "Ride Accepted",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text("Ride Accepted", style: TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
       content: Column(
@@ -235,19 +236,27 @@ void _showRideAcceptedDialog({required String otp}) {
             style: TextStyle(fontSize: 16, height: 1.4),
           ),
           const SizedBox(height: 12),
-          Text(
-            "Your OTP: $otp", // ✅ show OTP here
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.blue,
-            ),
-          ),
+          // Text(
+          //   "Your OTP: $otp", // ✅ show OTP here
+          //   style: const TextStyle(
+          //     fontSize: 18,
+          //     fontWeight: FontWeight.bold,
+          //     color: Colors.blue,
+          //   ),
+          // ),
         ],
       ),
       actions: [
         TextButton(
-          onPressed: () {
+          onPressed: () async {
+            print(
+              "💾 Saving BookingID: $bookingId and RiderID: $riderId before navigating...",
+            );
+            await SharedPrefsHelper.setBookingId(bookingId.toString());
+            await SharedPrefsHelper.setRiderId(riderId.toString());
+            await SharedPrefsHelper.saveTripAccepted(true);
+            final String? bookingIdStr = await SharedPrefsHelper.getBookingId();
+            print("--------> bookingId: $bookingIdStr");
             Navigator.pop(ctx); // close dialog
             Future.microtask(() {
               GoRouter.of(context).go("/tracking"); // navigate safely
@@ -270,9 +279,10 @@ void _showRideAcceptedDialog({required String otp}) {
   );
 }
 
-void showRideCancelledDialog(
-    BuildContext context,
-    ) {
+void showRideCancelledDialog() {
+  print('---->>>>>Dialogbox called');
+  final context = navigatorKey.currentContext;
+  if (context == null) return;
   showGeneralDialog(
     context: context,
     barrierDismissible: false,
@@ -281,10 +291,7 @@ void showRideCancelledDialog(
     pageBuilder: (context, animation, secondaryAnimation) {
       return Center(
         child: Container(
-          width: MediaQuery
-              .of(context)
-              .size
-              .width * 0.85,
+          width: MediaQuery.of(context).size.width * 0.85,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -362,17 +369,24 @@ void showRideCancelledDialog(
 
                       // Clear all saved ride data
                       await RideStorage.clearRideData();
-                      final container = ProviderScope.containerOf(context, listen: false);
+                      await SharedPrefsHelper.saveTripAccepted(false);
+                      final container = ProviderScope.containerOf(
+                        context,
+                        listen: false,
+                      );
                       // Reset providers
                       container.read(rideOtpProvider.notifier).state = '';
                       container.read(driverLatLongProvider.notifier).state = '';
                       container.read(dropLatLngProvider.notifier).state = null;
                       container.read(driverMobNoProvider.notifier).state = null;
-                      container.read(tripStartedProvider.notifier).state = false;
+                      container.read(tripStartedProvider.notifier).state =
+                          false;
 
                       // Show user feedback
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Ride has been cancelled')),
+                        const SnackBar(
+                          content: Text('Ride has been cancelled'),
+                        ),
                       );
 
                       // Navigate to HomeScreen

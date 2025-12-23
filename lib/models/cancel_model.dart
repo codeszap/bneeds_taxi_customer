@@ -9,7 +9,7 @@ class CancelModel {
 
   Map<String, dynamic> toMap() {
     return {
-      "lastBookingId": lastBookingId,
+      "Bookingid": lastBookingId,
       "decline_reason": decline_reason,
     };
   }

@@ -77,13 +77,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final mobileNo = prefs.getString('mobileno');
     final isProfileCompleted = prefs.getBool('isProfileCompleted') ?? false;
 
-    // Check if a ride is in progress or accepted
-    final tripStarted = await RideStorage.getTripStarted();
-    final tripAccepted = await RideStorage.getTripAccepted();
 
-    print(
-      "📦 Mobile No: $mobileNo | ProfileCompleted: $isProfileCompleted | TripStarted: $tripStarted | TripAccepted: $tripAccepted",
-    );
+    final tripAccepted =  await SharedPrefsHelper.getTripAccepted();(true);
+
+    // print(
+    //   "📦 Mobile No: $mobileNo | ProfileCompleted: $isProfileCompleted | TripStarted: $tripStarted | TripAccepted: $tripAccepted",
+    // );
 
     // Delay to show splash for at least 3 seconds
     await Future.delayed(const Duration(seconds: 3));
@@ -91,11 +90,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     if (!mounted) return;
 
     // Navigate to tracking if ride is started or accepted
-    if (tripStarted || tripAccepted) {
+    if (tripAccepted) {
       context.go('/tracking');
     } else if (mobileNo != null && mobileNo.isNotEmpty) {
       await FcmHelper.syncTokenWithServer();
       if (isProfileCompleted) {
+       // context.go('/tracking');
         context.go('/home');
       } else {
         context.go('/profile');

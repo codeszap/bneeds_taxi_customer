@@ -42,6 +42,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   DriverProfile? driverProfile;
   Timer? _driverLocationTimer;
   int _remainingSeconds = 120;
+  static const int _refreshIntervalInSeconds = 120;
   Timer? _countdownTimer;
   // final LatLng _customerLatLng = const LatLng(9.9252, 78.1198);
   LatLng? _customerLatLng;
@@ -58,19 +59,48 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   @override
   void initState() {
     super.initState();
-    _driverLocationTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      if (!_isLoading) {
-        print("--- Timer fired! Calling _initForTrip() now. ---");
-        _initForTrip();
-      }
-    });
+    _remainingSeconds = _refreshIntervalInSeconds;
+    _driverLocationTimer = Timer.periodic(
+      const Duration(seconds: _refreshIntervalInSeconds),
+      (timer) {
+        if (!_isLoading) {
+          print("--- Location Timer Fired! Calling _initForTrip(). ---");
+          _initForTrip();
+          _resetCountdown();
+        }
+      },
+    );
+
+    _startCountdown();
     _initializeScreen();
   }
 
+  void _startCountdown() {
+    _countdownTimer?.cancel(); // பழைய டைமர் இருந்தால் அதை ரத்து செய்யவும்
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingSeconds > 0) {
+        if (mounted) {
+          setState(() {
+            _remainingSeconds--;
+          });
+        }
+      } else {
+        timer.cancel(); // 0 ஆனதும் டைமரை நிறுத்தவும்
+      }
+    });
+  }
+
+  void _resetCountdown() {
+    if (mounted) {
+      setState(() {
+        _remainingSeconds = _refreshIntervalInSeconds;
+      });
+    }
+  }
 
   @override
   void dispose() {
-    _countdownTimer?.cancel();
+    _countdownTimer?.cancel(); // இதைச் சேர்க்கவும்
     _driverLocationTimer?.cancel();
     _progressTimer?.cancel();
     super.dispose();
@@ -80,15 +110,19 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
   Future<void> _initializeScreen() async {
     if (!mounted) return;
-    print("✅ [1] _initializeScreen: Starting. Setting isLoading = true.");setState(() {
+    print("✅ [1] _initializeScreen: Starting. Setting isLoading = true.");
+    setState(() {
       _isLoading = true;
     });
 
     try {
       print("✅ [2] _initializeScreen: Getting current position...");
       final pos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.medium);
-      print("✅ [3] _initializeScreen: Position received successfully. Lat: ${pos.latitude}");
+        desiredAccuracy: LocationAccuracy.medium,
+      );
+      print(
+        "✅ [3] _initializeScreen: Position received successfully. Lat: ${pos.latitude}",
+      );
 
       if (!mounted) return;
       _customerLatLng = LatLng(pos.latitude, pos.longitude);
@@ -97,8 +131,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       await _initForTrip();
 
       // Intha print varuthaannu paapom
-      print("✅ [5] _initializeScreen: _initForTrip() finished. Now setting isLoading = false (if not already done).");
-
+      print(
+        "✅ [5] _initializeScreen: _initForTrip() finished. Now setting isLoading = false (if not already done).",
+      );
     } catch (e) {
       print("❌ ERROR in _initializeScreen: $e");
       if (!mounted) return;
@@ -116,8 +151,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     }
   }
 
-// D:/Sulthan/bneeds_taxi_customer/lib/screens/tracking_screen.dart
-
   Future<void> _initForTrip() async {
     // Function start aagumbothe print panrom
     print("➡️ [A] _initForTrip: Starting...");
@@ -128,7 +161,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     if (bookingIdStr == null || riderIdStr == null) {
       if (!mounted) return;
       // Problem-na enga-nu theriyum
-      print("❌ ERROR in _initForTrip: Booking details not found in SharedPreferences.");
+      print(
+        "❌ ERROR in _initForTrip: Booking details not found in SharedPreferences.",
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Booking details not found.")),
       );
@@ -138,14 +173,20 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     }
 
     // API call-ku munnadi print panrom
-    print("➡️ [B] _initForTrip: Found bookingId: $bookingIdStr. Calling API now...");
+    print(
+      "➡️ [B] _initForTrip: Found bookingId: $bookingIdStr. Calling API now...",
+    );
+
+
+    print("-----> calling $bookingIdStr and $riderIdStr");
 
     try {
       // --- OPTIMIZATION: PARALLEL FETCHING ---
       final results = await Future.wait([
         ref.read(
           fetchBookingDetailProvider(
-            BookingParams(bookingId: int.parse("136"), riderId: int.parse("28")),
+          //  BookingParams(bookingId: int.parse("206"), riderId: int.parse("3")),
+            BookingParams(bookingId: int.parse(bookingIdStr), riderId: int.parse(riderIdStr)),
           ).future,
         ),
       ]);
@@ -157,7 +198,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       final bookingDetails = results[0] as List<GetBookingDetail>?;
 
       if (bookingDetails == null || bookingDetails.isEmpty) {
-        print("❌ ERROR in _initForTrip: API returned null or empty booking details.");
+        print(
+          "❌ ERROR in _initForTrip: API returned null or empty booking details.",
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Could not fetch trip details.")),
         );
@@ -173,7 +216,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       final dropLatLngParts = rideData.dropUpLatLong.split(',');
 
       if (riderLatLngParts.length != 2 || dropLatLngParts.length != 2) {
-        print("❌ ERROR in _initForTrip: LatLng data is invalid. Parts count mismatch.");
+        print(
+          "❌ ERROR in _initForTrip: LatLng data is invalid. Parts count mismatch.",
+        );
         setState(() => _isLoading = false);
         return;
       }
@@ -203,7 +248,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       print("➡️ [E] _initForTrip: Calling getRoute()...");
       await getRoute(userCurrentLocation, destination);
       // Route fetching mudinja apram
-      print("➡️ [F] _initForTrip: getRoute() finished. Calling final setState...");
+      print(
+        "➡️ [F] _initForTrip: getRoute() finished. Calling final setState...",
+      );
 
       if (!mounted) return;
       setState(() {
@@ -215,17 +262,26 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             markerId: const MarkerId('user_current'),
             position: userCurrentLocation,
             infoWindow: const InfoWindow(title: 'Your Location'),
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+              BitmapDescriptor.hueAzure,
+            ),
           ),
         );
 
         _markers.add(
           Marker(
-            markerId: MarkerId(isTripStarted ? 'drop_location' : 'driver_location'),
+            markerId: MarkerId(
+              isTripStarted ? 'drop_location' : 'driver_location',
+            ),
             position: destination,
-            infoWindow: InfoWindow(title: isTripStarted ? 'Drop Location' : 'Driver Location'),
+            infoWindow: InfoWindow(
+              title: isTripStarted ? 'Drop Location' : 'Driver Location',
+            ),
             icon: BitmapDescriptor.defaultMarkerWithHue(
-                isTripStarted ? BitmapDescriptor.hueRed : BitmapDescriptor.hueGreen),
+              isTripStarted
+                  ? BitmapDescriptor.hueRed
+                  : BitmapDescriptor.hueGreen,
+            ),
           ),
         );
 
@@ -242,7 +298,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
         // Sariya mudincha, inga `_isLoading` false aagum
         _isLoading = false;
-        print("🎉 SUCCESS! _initForTrip: Final setState called, isLoading is now false. UI should be visible.");
+        print(
+          "🎉 SUCCESS! _initForTrip: Final setState called, isLoading is now false. UI should be visible.",
+        );
       });
 
       print("➡️ [G] _initForTrip: setState is complete. Animating camera...");
@@ -271,18 +329,20 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           100.0,
         ),
       );
-      print("➡️ [H] _initForTrip: Camera animation finished. Function complete.");
-
+      print(
+        "➡️ [H] _initForTrip: Camera animation finished. Function complete.",
+      );
     } catch (e) {
       // Ethavathu error vantha, inga log aagum
-      print("❌❌❌ MAJOR ERROR in _initForTrip during API call or processing: $e");
+      print(
+        "❌❌❌ MAJOR ERROR in _initForTrip during API call or processing: $e",
+      );
       if (mounted) {
         // Error vanthaalum loading-a stop panrom
         setState(() => _isLoading = false);
       }
     }
   }
-
 
   Future<void> getRoute(LatLng start, LatLng end) async {
     // API key-a unga project constants-la irundhu eduthukonga
@@ -381,7 +441,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 ],
               ),
               child: Text(
-                "Refreshing in: ${_remainingSeconds ~/ 60}:${(_remainingSeconds % 60).toString().padLeft(2, '0')}",
+                "Refresh in: $_remainingSeconds s",
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -391,11 +451,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ),
           ),
 
-          // Driver details, OTP, and buttons bottom sheet-la varum
           DraggableScrollableSheet(
-            initialChildSize: 0.45, // Sheet initial-a evlo height-la irukkanum
-            minChildSize: 0.45, // Keela evlo varaikum izhukalam
-            maxChildSize: 0.8, // Mela evlo varaikum izhukalam
+            initialChildSize: 0.45,
+            minChildSize: 0.45,
+            maxChildSize: 0.8,
             builder: (BuildContext context, ScrollController scrollController) {
               return Container(
                 decoration: BoxDecoration(
@@ -654,10 +713,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                       ? () async {
                           // Close the dialog first
                           Navigator.of(dialogContext).pop();
-
-                          final prefs = await SharedPreferences.getInstance();
-                          final lastlastBookingId =
-                              prefs.getString("lastlastBookingId") ?? '';
+                          final String? lastlastBookingId = await SharedPrefsHelper.getBookingId();
 
                           // Read pickup/drop values BEFORE clearing providers
                           final fromLocation =
@@ -668,7 +724,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                           // Prepare cancel model
                           final cancelModel = CancelModel(
                             decline_reason: selectedReason!,
-                            lastBookingId: lastlastBookingId,
+                            lastBookingId: lastlastBookingId!,
                           );
 
                           // Call cancel API
@@ -680,7 +736,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                           if (success) {
                             // Clear ride storage and SharedPreferences
                             await RideStorage.clearRideData();
-                            await prefs.remove("lastlastBookingId");
+                            // await prefs.remove("lastlastBookingId");
+                            await SharedPrefsHelper.clearBookingId();
+                            await SharedPrefsHelper.clearLastBookingId();
 
                             // Clear all related Riverpod providers
                             ref.read(rideOtpProvider.notifier).state = '';

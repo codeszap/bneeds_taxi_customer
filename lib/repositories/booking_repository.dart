@@ -13,6 +13,7 @@ class BookingRepository {
   final Dio _dio = ApiClient().dio;
 
   Future<int?> addBooking(BookingModel booking) async {
+    // D:/sulthan/bneeds_taxi_customer/lib/repositories/booking_repository.dartFuture<int?> addBooking(BookingModel booking) async {
     try {
       final payload = {
         "vehbookingDet": [booking.toMap()],
@@ -27,20 +28,34 @@ class BookingRepository {
       if (response.statusCode == 200 || response.statusCode == 201) {
         var data = response.data;
 
-        // 🚀 check if data is string, then decode
         if (data is String) {
           data = jsonDecode(data);
         }
 
-        final bookingId = data['bookingId'] as int?;
+        // --- 💡 மாற்றம் இங்கே தொடங்குகிறது ---
 
-        if (bookingId != null) {
-          print("Booking saved successfully with ID: $bookingId");
-          return bookingId;
+        // 'bookingIds' என்ற array-ஐப் பெறுகிறோம்
+        final bookingIds = data['bookingIds'] as List<dynamic>?;
+
+        // array null-ஆகவோ அல்லது காலியாகவோ (empty) இல்லை என்பதைச் சரிபார்க்கவும்
+        if (bookingIds != null && bookingIds.isNotEmpty) {
+          // array-வில் உள்ள முதல் ID-ஐப் பெறுகிறோம்
+          final bookingId = bookingIds.first as int?;
+
+          if (bookingId != null) {
+            print("Booking saved successfully with ID: $bookingId");
+            return bookingId;
+          } else {
+            print("Error: Could not parse bookingId from the list.");
+            return null;
+          }
         } else {
-          print("Error: 'bookingId' not found in the response.");
+          // 'bookingId' அல்லது 'bookingIds' கிடைக்கவில்லை என்றால் பிழையைக் காட்டவும்
+          print("Error: 'bookingIds' not found or is empty in the response.");
           return null;
         }
+        // --- ✨ மாற்றம் இங்கே முடிகிறது ---
+
       } else {
         print("Error saving booking with status code: ${response.statusCode}");
         return null;
@@ -51,13 +66,15 @@ class BookingRepository {
     }
   }
 
+
+
   Future<bool> cancelBooking(CancelModel cancel) async {
     try {
       final payload = {
         "vehbookingdecline": [cancel.toMap()],
       };
 
-      final response = await _dio.post(
+    final response = await _dio.post(
         "${ApiEndpoints.bookingRide}?action=D",
         data: payload,
         options: Options(headers: {"Content-Type": "application/json"}),

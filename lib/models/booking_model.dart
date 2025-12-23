@@ -13,12 +13,12 @@ class BookingModel {
   final String bookStatus;
   final String paymentMethod;
   final String driverRate;
-  final String fromLatLong ;
+final String fromLatLong ;
   final String toLatLong ;
 
-  BookingModel({
+BookingModel({
     required this.userid,
-    required this.mobileNo,
+  required this.mobileNo,
     required this.riderId,
     required this.bookDate,
     required this.scheduled,
@@ -51,8 +51,8 @@ class BookingModel {
       "BookStatus": bookStatus,
       "paymentMethod": paymentMethod,
       "DriverRate": driverRate,
-      "FromLatLong ": fromLatLong,
-      "ToLatLong ": toLatLong,
+      "FromLatLong": fromLatLong,
+      "ToLatLong": toLatLong,
     };
   }
 }

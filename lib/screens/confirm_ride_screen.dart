@@ -92,6 +92,12 @@ class ConfirmRideScreen extends ConsumerWidget {
 
       final selectedPayment = ref.read(selectedPaymentProvider);
 
+      final fromPos = ref.read(fromLatLngProvider);
+      final toPos = ref.read(toLatLngProvider);
+
+      final fromLatLongStr = "${fromPos?.latitude},${fromPos?.longitude}";
+      final toLatLongStr = "${toPos?.latitude},${toPos?.longitude}";
+
       final booking = BookingModel(
         userid: await userId,
         mobileNo: await mobileNo,
@@ -107,8 +113,8 @@ class ConfirmRideScreen extends ConsumerWidget {
         bookStatus: "B",
         paymentMethod: selectedPayment,
         driverRate: "",
-        fromLatLong: fromPos.toString(),
-        toLatLong: toPos.toString(),
+        fromLatLong: fromLatLongStr.toString(),
+        toLatLong: toLatLongStr.toString(),
       );
 
       // Show loading dialog

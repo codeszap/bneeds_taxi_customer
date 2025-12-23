@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../utils/sharedPrefrencesHelper.dart';
+
 class RideCompleteScreen extends StatelessWidget {
   final String fareAmount; // ← add this
 
@@ -157,7 +159,8 @@ class RideCompleteScreen extends StatelessWidget {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
+                            await SharedPrefsHelper.saveTripAccepted(false);
                             final review = reviewController.text.trim();
                             context.go('/home');
                           },

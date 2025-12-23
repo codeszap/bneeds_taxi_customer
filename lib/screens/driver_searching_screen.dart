@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bneeds_taxi_customer/repositories/profile_repository.dart';
 import 'package:bneeds_taxi_customer/utils/sharedPrefrencesHelper.dart';
 import 'package:flutter/material.dart';
@@ -53,11 +55,32 @@ class DriverSearchingScreen extends ConsumerStatefulWidget {
 
 class _DriverSearchingScreenState extends ConsumerState<DriverSearchingScreen> {
   bool _triggered = false;
+  Timer? _searchTimer;
 
   @override
-  void initState() {
-    super.initState();
+  void initState() {super.initState();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    ref.read(driverSearchProvider.notifier).startSearch();
+    startTimer();
+  });
   }
+
+  void startTimer() {
+    _searchTimer?.cancel();
+    _searchTimer = Timer(const Duration(minutes: 1), () {
+      if (mounted && ref.read(driverSearchProvider).status == DriverSearchStatus.searching) {
+        ref.read(driverSearchProvider.notifier).setError();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchTimer?.cancel();
+    super.dispose();
+  }
+
+
 
 
   @override
@@ -65,8 +88,9 @@ class _DriverSearchingScreenState extends ConsumerState<DriverSearchingScreen> {
     final state = ref.watch(driverSearchProvider);
     final notifier = ref.read(driverSearchProvider.notifier);
 
-    // When driver found → navigate to tracking screen
+
     if (state.status == DriverSearchStatus.found) {
+      _searchTimer?.cancel();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.go('/tracking');
       });
@@ -119,6 +143,7 @@ class _DriverSearchingScreenState extends ConsumerState<DriverSearchingScreen> {
         ElevatedButton.icon(
           onPressed: () {
             notifier.cancelSearch();
+            _searchTimer?.cancel();
             context.go('/home');
           },
           icon: const Icon(Icons.close),
@@ -137,20 +162,25 @@ class _DriverSearchingScreenState extends ConsumerState<DriverSearchingScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.error_outline, color: Colors.redAccent, size: 80),
+        const Icon(Icons.check_circle, color: Colors.green, size: 80),
         const SizedBox(height: 20),
+
         const Text(
-          "No drivers available nearby",
+          "Thank you for booking! Our driver will contact you shortly. Please stay patient.",
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
         ),
-        const SizedBox(height: 10),
-        const Text(
-          "Please try again later or change your pickup location.",
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: Colors.black54),
-        ),
-        const SizedBox(height: 30),
+
+        const SizedBox(height: 20),
+
+        // const Text(
+        //   "But your ride has been successfully booked.\nA driver will be assigned shortly. Have a pleasant journey!",
+        //   textAlign: TextAlign.center,
+        //   style: TextStyle(fontSize: 14, color: Colors.black54),
+        // ),
+
+       // const SizedBox(height: 30),
+
         ElevatedButton(
           onPressed: () {
             notifier.cancelSearch();
@@ -165,4 +195,5 @@ class _DriverSearchingScreenState extends ConsumerState<DriverSearchingScreen> {
       ],
     );
   }
+
 }

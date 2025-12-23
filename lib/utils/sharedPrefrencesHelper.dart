@@ -15,6 +15,7 @@ class SharedPrefsKeys {
   static const String isProfileCompleted = "isProfileCompleted";
   static const String fcmToken = "fcmToken";
   static const String driverUsername = "driverUsername";
+  static const String tripAccepted = 'tripAccepted';
 }
 
 class SharedPrefsHelper {
@@ -32,7 +33,7 @@ class SharedPrefsHelper {
 
   static Future<void> setBookingId(String riderId) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(SharedPrefsKeys.riderId, riderId);
+    await prefs.setString(SharedPrefsKeys.bookingId, riderId);
   }
 
   static Future<void> setLastBookingId(String id) async {
@@ -85,6 +86,11 @@ class SharedPrefsHelper {
     await prefs.setString(SharedPrefsKeys.driverUsername, username);
   }
 
+  static Future<void> saveTripAccepted(bool accepted) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(SharedPrefsKeys.tripAccepted, accepted);
+  }
+
   /// ---------- GET METHODS ----------
   static Future<String> getDriverStatus() async {
     final prefs = await SharedPreferences.getInstance();
@@ -99,6 +105,12 @@ class SharedPrefsHelper {
   static Future<String> getBookingId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(SharedPrefsKeys.bookingId) ?? "";
+  }
+
+  static Future<bool> getTripAccepted() async {
+    final prefs = await SharedPreferences.getInstance();
+    // 💡 நீங்கள் தவறான மாறி பெயரைப் பயன்படுத்தியுள்ளீர்கள். 'tripAccepted' என்பதற்கு பதிலாக SharedPrefsKeys.tripAccepted-ஐப் பயன்படுத்தவும்.
+    return prefs.getBool(SharedPrefsKeys.tripAccepted) ?? false;
   }
 
   // static Future<String?> getLastBookingId() async {
@@ -180,5 +192,10 @@ class SharedPrefsHelper {
   static Future<void> clearBookingId() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(SharedPrefsKeys.bookingId);
+  }
+
+  static Future<void> clearTripAccepted() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(SharedPrefsKeys.tripAccepted);
   }
 }

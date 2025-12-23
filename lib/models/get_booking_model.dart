@@ -10,11 +10,8 @@ class GetBookingDetail {
   final String riderMobileNo;
   final String riderLatLong;
   final String riderStatus;
-
   final String vehNo;
   final String tripStatus;
-
-
   final String bookDate;
   final String pickupLocation;
   final String dropLocation;
@@ -56,39 +53,39 @@ class GetBookingDetail {
     // 💡 '.toString()' use pannuradhu safe. API la BigInt or int irundhaalum handle pannidum.
     return GetBookingDetail(
       // IDs
-      bookingId: json['Bookingid']?.toString() ?? '',
+      bookingId: json['bookingid']?.toString() ?? '',
       userId: json['userid']?.toString() ?? '',
-      riderId: json['Riderid']?.toString() ?? '',
-      vehSubTypeId: json['VehsubTypeid']?.toString() ?? '',
+      riderId: json['riderid']?.toString() ?? '',
+      vehSubTypeId: json['vehsubtypeid']?.toString() ?? '',
 
       // User/Rider Details (Exact Keys)
-      userName: json['userName']?.toString() ?? '',
-      userMobileNo: json['usermonileno']?.toString() ?? '',
-      riderName: json['RiderName']?.toString() ?? '',
+      userName: json['username']?.toString() ?? '',
+    userMobileNo: json['usermobileno']?.toString() ?? '',
+      riderName: json['ridername']?.toString() ?? '',
       riderMobileNo: json['ridermobileno']?.toString() ?? '',
-      riderLatLong: json['Riderlatlong']?.toString() ?? '',
+    riderLatLong: json['riderlatlong']?.toString() ?? '',
       riderStatus: json['riderstatus']?.toString() ?? '',
 
       // Vehicle Details
-      vehNo: json['VehNo']?.toString() ?? '',
-      tripStatus: json['TripStatus']?.toString() ?? '',
+      vehNo: json['vehno']?.toString() ?? '',
+      tripStatus: json['tripstatus']?.toString() ?? '',
 
       // Booking/Trip Details
-      bookDate: json['BookDate']?.toString() ?? '',
-      pickupLocation: json['pickupLocation']?.toString() ?? '',
-      dropLocation: json['dropLocation']?.toString() ?? '',
+      bookDate: json['bookdate']?.toString() ?? '',
+      pickupLocation: json['pickuplocation']?.toString() ?? '',
+      dropLocation: json['droplocation']?.toString() ?? '',
 
       // Data type handling: JSON la number-a irundha, adha Double/Int-a kondu varom
       distance: (json['distance'] is num) ? json['distance'].toDouble() : 0.0,
-      fareAmount: (json['fareAmount'] is num) ? json['fareAmount'].toInt() : 0,
+      fareAmount: (json['fareamount'] is num) ? json['fareamount'].toInt() : 0,
 
-      bookStatus: json['BookStatus']?.toString() ?? '',
-      pickupLatLong: json['Pickuplatlong']?.toString() ?? '',
-      dropUpLatLong: json['Dropuplatlong']?.toString() ?? '',
+      bookStatus: json['bookstatus']?.toString() ?? '',
+      pickupLatLong: json['pickuplatlong']?.toString() ?? '',
+      dropUpLatLong: json['dropuplatlong']?.toString() ?? '',
 
-      finalAmt: json['finalamt']?.toString(), // Nullable field
+      finalAmt: json['finalamt']?.toString(),
 
-      otp: json['OTP']?.toString() ?? '', // Uppercase 'OTP'
+      otp: json['otp']?.toString() ?? '',
     );
   }
 }
