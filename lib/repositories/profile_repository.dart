@@ -21,6 +21,12 @@ class ProfileRepository {
       final response = await _dio.get(url);
 
       print("✅ Status: ${response.statusCode}");
+
+      // 🛑 Handle if response.data is null (Some servers return empty body on 204 or 404 success-like generic responses)
+      if (response.data == null) {
+        return [];
+      }
+
       print("📦 Data type: ${response.data.runtimeType}");
       print("📦 Data: ${response.data}");
 
@@ -33,7 +39,7 @@ class ProfileRepository {
 
         if (status == 'error') {
           print("⚠ No user found: ${data['message']}");
-          return []; // or throw Exception(data['message']);
+          return [];
         }
 
         if (status == 'success' && data['data'] is List) {
@@ -42,17 +48,25 @@ class ProfileRepository {
               .toList();
         }
 
-        throw Exception("Unexpected success response format");
+        // Sometimes succes with empty data
+        return [];
       } else {
         throw Exception("Unexpected response format");
       }
+    } on DioException catch (e) {
+      // ✅ Handle 404 specifically for "New User" scenario
+      if (e.response?.statusCode == 404) {
+        print("ℹ️ User not found (404) - Treating as new user.");
+        return [];
+      }
+      
+      print("❌ Error fetching profile: ${e.message}");
+      throw Exception("Error fetching profile: ${e.message}");
     } catch (e) {
       print("❌ Error fetching profile: $e");
       throw Exception("Error fetching profile: $e");
     }
   }
-
-
 
   Future<String> insertUserProfile(UserProfile profile) async {
     final String url = "${ApiEndpoints.userProfile}?action=I";
@@ -82,9 +96,14 @@ class ProfileRepository {
             : response.data;
 
         if (data["status"] == "success") {
-          // --- THIS IS THE CRITICAL CHANGE ---
-          final String userId = data["userid"].toString(); // Get the userid from the response
-          await SharedPrefsHelper.setUserId(userId); // Save it to shared preferences
+          // --- Improved UserId extraction ---
+          final rawUserId = data["userid"] ?? data["userId"] ?? data["id"];
+          final String userId = (rawUserId != null) ? rawUserId.toString() : "";
+
+          if (userId.isNotEmpty && userId != "null") {
+            await SharedPrefsHelper.setUserId(userId);
+            print("Successfully stored UserID: $userId");
+          }
           // ------------------------------------
 
           return data["message"] ?? "Insert Successfully";
@@ -99,7 +118,6 @@ class ProfileRepository {
       throw Exception("Error inserting profile: $e");
     }
   }
-
 
   Future<String> updateUserProfile(UserProfile profile) async {
     final String url = "${ApiEndpoints.userProfile}?action=U";
@@ -126,10 +144,14 @@ class ProfileRepository {
             : response.data;
 
         if (data["status"] == "success") {
-          // Confirm the userid from the response (Optional: can be used for logging/verification)
-          final String userId = data["userid"].toString();
-          await SharedPrefsHelper.setUserId(userId);
-          print("UserID $userId updated successfully.");
+          // --- Improved UserId extraction ---
+          final rawUserId = data["userid"] ?? data["userId"] ?? data["id"];
+          final String userId = (rawUserId != null) ? rawUserId.toString() : "";
+
+          if (userId.isNotEmpty && userId != "null") {
+            await SharedPrefsHelper.setUserId(userId);
+            print("UserID $userId updated successfully.");
+          }
 
           return data["message"] ?? "Updated Successfully";
         } else {
@@ -146,8 +168,9 @@ class ProfileRepository {
     }
   }
 
-
-  Future<List<DriverProfile>> getDriverDetail({required String mobileno}) async {
+  Future<List<DriverProfile>> getDriverDetail({
+    required String mobileno,
+  }) async {
     final url = "${ApiEndpoints.driverProfile}?action=L&mobileno=$mobileno";
 
     try {
@@ -156,7 +179,9 @@ class ProfileRepository {
       // முழு response data print பண்ண
       print("Raw response: ${response.data}");
 
-      final data = response.data is String ? jsonDecode(response.data) : response.data;
+      final data = response.data is String
+          ? jsonDecode(response.data)
+          : response.data;
 
       // decode ஆனது print பண்ண
       print("Decoded data: $data");
@@ -171,7 +196,6 @@ class ProfileRepository {
       print("Error fetching rider login: ${e.response?.data ?? e.message}");
       return [];
     }
-
   }
 
   Future<List<DriverProfile>> getDriverNearby({
@@ -190,7 +214,9 @@ class ProfileRepository {
       print("Raw response: ${response.data}");
 
       // Decode JSON if response is string
-      final data = response.data is String ? jsonDecode(response.data) : response.data;
+      final data = response.data is String
+          ? jsonDecode(response.data)
+          : response.data;
       print("Decoded data: $data");
 
       if (data['status']?.toString().toLowerCase() == 'success' &&
@@ -209,19 +235,16 @@ class ProfileRepository {
     }
   }
 
-  Future<int?> updateFcmToken({
+  Future<bool?> updateFcmToken({
     required String mobileNo,
     required String tokenKey,
   }) async {
     final String url = "${ApiEndpoints.userProfile}?action=T";
 
     final body = jsonEncode({
-      "updateridertokenkey": [
-        {
-          "mobileno": mobileNo,
-          "tokenkey": tokenKey,
-        }
-      ]
+      "updatetokenkey": [
+        {"mobileno": mobileNo, "tokenkey": tokenKey},
+      ],
     });
 
     try {
@@ -242,21 +265,23 @@ class ProfileRepository {
           data = jsonDecode(data);
         }
 
-        final bookingId = data['bookingId'] as int?;
+        final status = data['status']?.toString().toLowerCase();
 
-        if (bookingId != null) {
-          print("Booking saved successfully with ID: $bookingId");
-          return bookingId;
+        if (status == 'success') {
+          print("✅ FCM Token updated successfully");
+          return true;
         } else {
-          print("Error: 'bookingId' not found in the response.");
-          return null;
+          print("❌ Error updating FCM Token: ${data['message']}");
+          return false;
         }
       } else {
-        print("Error saving booking with status code: ${response.statusCode}");
-        return null;
+        print(
+          "Error updating FCM Token with status code: ${response.statusCode}",
+        );
+        return false;
       }
     } catch (e) {
-      print("Error saving booking: $e");
+      print("Error updating FCM Token: $e");
       rethrow;
     }
   }

@@ -7,8 +7,10 @@ import 'package:http/http.dart' as http;
 import 'package:go_router/go_router.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../utils/constants.dart';
+import '../widgets/common_shimmer.dart';
 
 // Google Places API Key
 //const String _googleApiKey = 'AIzaSyAWzUqf3Z8xvkjYV7F4gOGBBJ5d_i9HZhs';
@@ -25,9 +27,14 @@ final placeSuggestionsProvider = FutureProvider.family<List<String>, String>((
   query,
 ) async {
   if (query.isEmpty) return [];
-  final url = Uri.parse(
-    'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${Uri.encodeComponent(query)}&key=${Strings.googleApiKey}&components=country:in',
-  );
+  const String proxy = "https://api.allorigins.win/raw?url=";
+  final targetUrl =
+      'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${Uri.encodeComponent(query)}&key=${Strings.googleApiKey}&components=country:in';
+
+  final finalUrl = kIsWeb
+      ? (proxy + Uri.encodeComponent(targetUrl))
+      : targetUrl;
+  final url = Uri.parse(finalUrl);
 
   final response = await http.get(url);
   final jsonBody = jsonDecode(response.body);
@@ -102,7 +109,7 @@ class SelectLocationScreen extends ConsumerWidget {
     });
 
     return MainScaffold(
-      title:  ("Select Location"),
+      title: ("Select Location"),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -229,7 +236,11 @@ class SelectLocationScreen extends ConsumerWidget {
                     },
                   );
                 },
-                loading: () => const LinearProgressIndicator(),
+                loading: () => const CommonShimmer(
+                  width: double.infinity,
+                  height: 10,
+                  borderRadius: 5,
+                ),
                 error: (_, __) => const SizedBox(),
               ),
             ),

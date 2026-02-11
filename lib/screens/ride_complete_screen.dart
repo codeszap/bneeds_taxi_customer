@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
+import '../models/RideStorage.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
+import '../providers/location_provider.dart';
+import '../providers/ride_otp_provider.dart';
 import '../utils/sharedPrefrencesHelper.dart';
+import 'tracking_screen.dart'; // Add this to access tripStartedProvider
 
-class RideCompleteScreen extends StatelessWidget {
+class RideCompleteScreen extends ConsumerWidget {
   final String fareAmount; // ← add this
 
   const RideCompleteScreen({super.key, required this.fareAmount});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final TextEditingController reviewController = TextEditingController();
     int rating = 4;
 
@@ -35,15 +39,20 @@ class RideCompleteScreen extends StatelessWidget {
                           color: Colors.green.shade100,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.check_rounded,
-                            size: 70, color: Colors.green),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          size: 70,
+                          color: Colors.green,
+                        ),
                       ),
 
                       const SizedBox(height: 20),
                       const Text(
                         'Trip Completed!',
-                        style:
-                        TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       const Text(
@@ -62,7 +71,7 @@ class RideCompleteScreen extends StatelessWidget {
                           gradient: LinearGradient(
                             colors: [
                               Colors.deepPurple.shade300,
-                              Colors.deepPurple
+                              Colors.deepPurple,
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -104,28 +113,33 @@ class RideCompleteScreen extends StatelessWidget {
                       // ⭐ Rate your trip (same as before)
                       const Text(
                         "Rate your trip",
-                        style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 10),
 
-                      StatefulBuilder(builder: (context, setState) {
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(5, (index) {
-                            return IconButton(
-                              onPressed: () => setState(() => rating = index + 1),
-                              icon: Icon(
-                                index < rating
-                                    ? Icons.star_rounded
-                                    : Icons.star_border_rounded,
-                                color: Colors.amber,
-                                size: 30,
-                              ),
-                            );
-                          }),
-                        );
-                      }),
+                      StatefulBuilder(
+                        builder: (context, setState) {
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(5, (index) {
+                              return IconButton(
+                                onPressed: () =>
+                                    setState(() => rating = index + 1),
+                                icon: Icon(
+                                  index < rating
+                                      ? Icons.star_rounded
+                                      : Icons.star_border_rounded,
+                                  color: Colors.amber,
+                                  size: 30,
+                                ),
+                              );
+                            }),
+                          );
+                        },
+                      ),
 
                       const SizedBox(height: 20),
 
@@ -160,9 +174,34 @@ class RideCompleteScreen extends StatelessWidget {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () async {
+                            // 🧹 Clear SharedPreferences & Storage
                             await SharedPrefsHelper.saveTripAccepted(false);
+                            await SharedPrefsHelper.clearBookingId();
+                            await SharedPrefsHelper.clearRiderId();
+                            await SharedPrefsHelper.setIsSearching(false);
+                            await SharedPrefsHelper.clearTripCompleted();
+                            await SharedPrefsHelper.clearFareAmount();
+                            await SharedPrefsHelper.clearTripStarted();
+                            await RideStorage.clearRideData();
+
+                            // 🧹 Reset all ride related providers
+                            ref.read(fromLocationProvider.notifier).state =
+                                'Current Locations';
+                            ref.read(toLocationProvider.notifier).state = '';
+                            ref.read(fromLatLngProvider.notifier).state = null;
+                            ref.read(toLatLngProvider.notifier).state = null;
+                            ref.read(selectedServiceProvider.notifier).state =
+                                null;
+
+                            // Reset other trip states just in case
+                            ref.read(rideOtpProvider.notifier).state = '';
+                            ref.read(tripStartedProvider.notifier).state =
+                                false;
+
                             final review = reviewController.text.trim();
-                            context.go('/home');
+                            if (context.mounted) {
+                              context.go('/home');
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.deepPurple,
@@ -173,8 +212,7 @@ class RideCompleteScreen extends StatelessWidget {
                           ),
                           child: const Text(
                             'Done',
-                            style: TextStyle(
-                                fontSize: 16, color: Colors.white),
+                            style: TextStyle(fontSize: 16, color: Colors.white),
                           ),
                         ),
                       ),

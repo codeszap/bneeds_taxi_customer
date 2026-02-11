@@ -1,11 +1,12 @@
 import 'package:bneeds_taxi_customer/providers/location_provider.dart'
     show fromLocationProvider, toLocationProvider, selectedServiceProvider;
 import 'package:bneeds_taxi_customer/providers/vehicle_subtype_provider.dart';
-import 'package:bneeds_taxi_customer/screens/confirm_ride_screen.dart';
 import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../widgets/common_shimmer.dart';
 
 class ServiceOptionsScreen extends ConsumerWidget {
   final String vehTypeId;
@@ -35,7 +36,6 @@ class ServiceOptionsScreen extends ConsumerWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-          
               Expanded(
                 child: ListView.separated(
                   padding: const EdgeInsets.all(10),
@@ -58,7 +58,7 @@ class ServiceOptionsScreen extends ConsumerWidget {
                           'type': item.vehSubTypeName,
                           'price': item.totalKms ?? '0',
                           'distanceKm': totalKms,
-                          'durationMin': estTime, 
+                          'durationMin': estTime,
                         };
                       },
                       child: Container(
@@ -132,12 +132,7 @@ class ServiceOptionsScreen extends ConsumerWidget {
                       onPressed: selectedService == null
                           ? null
                           : () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ConfirmRideScreen(),
-                                ),
-                              );
+                              context.push('/confirm-ride');
                             },
                       child: const Text(
                         "Book Ride",
@@ -154,7 +149,7 @@ class ServiceOptionsScreen extends ConsumerWidget {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const ListShimmer(itemCount: 5),
         error: (err, stack) => Center(child: Text("Error: $err")),
       ),
     );

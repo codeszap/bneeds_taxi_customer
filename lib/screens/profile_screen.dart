@@ -9,6 +9,8 @@ import '../widgets/common_drawer.dart';
 import '../models/user_profile_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import '../providers/trip_status_provider.dart';
+import '../widgets/common_shimmer.dart';
 
 final sharedPrefsProvider = FutureProvider<SharedPreferences>((ref) async {
   return await SharedPreferences.getInstance();
@@ -47,7 +49,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final credsAsync = ref.watch(credentialsProvider);
 
     return credsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Scaffold(body: ListShimmer(itemCount: 8)),
       error: (err, _) => Center(child: Text('Error loading credentials: $err')),
       data: (creds) {
         if (creds['mobileno']!.isEmpty) {
@@ -70,9 +72,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               profileAsync.when(
                 data: (profiles) {
                   if (profiles.isNotEmpty) {
+                    final tripStatus = ref.read(tripStatusProvider);
+                    final hasActiveRide =
+                        tripStatus.isSearching || tripStatus.tripAccepted;
+
                     return IconButton(
                       icon: Icon(_isEditing ? Icons.close : Icons.edit),
                       onPressed: () {
+                        if (hasActiveRide) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                "Cannot edit profile while in a ride! 🚖",
+                              ),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                          return;
+                        }
                         setState(() => _isEditing = !_isEditing);
                       },
                     );
@@ -107,7 +124,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 );
               }
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const ListShimmer(itemCount: 8),
             error: (err, stack) {
               debugPrint('Profile fetch error: $err');
               debugPrint('Stack trace: $stack');
@@ -294,7 +311,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         final fcmToken = await FirebaseMessaging.instance.getToken();
         print("🔥 Got FCM Token: $fcmToken");
 
-    await SharedPrefsHelper.setFcmToken( fcmToken ?? '');
+        await SharedPrefsHelper.setFcmToken(fcmToken ?? '');
 
         final newProfile = UserProfile(
           userid: existingProfile?.userid ?? "",
@@ -307,8 +324,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           address2: address2Controller.text,
           address3: address3Controller.text,
           city: cityController.text,
-          tokenkey:fcmToken.toString(),
-           //tokenkey: existingProfile?.tokenkey ?? "",
+          tokenkey: fcmToken.toString(),
+          //tokenkey: existingProfile?.tokenkey ?? "",
         );
 
         try {

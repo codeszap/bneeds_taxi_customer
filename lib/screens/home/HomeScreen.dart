@@ -5,15 +5,13 @@ import 'package:bneeds_taxi_customer/models/location_data.dart';
 import 'package:bneeds_taxi_customer/models/vehicle_subtype_model.dart';
 import 'package:bneeds_taxi_customer/providers/location_provider.dart';
 import 'package:bneeds_taxi_customer/providers/vehicle_subtype_provider.dart';
-import 'package:bneeds_taxi_customer/screens/confirm_ride_screen.dart'
-    hide selectedServiceProvider;
 import 'package:bneeds_taxi_customer/screens/select_location_screen.dart'
     hide recentLocationsProvider, placeSuggestionsProvider;
 import 'package:bneeds_taxi_customer/screens/home/widget/LocationField.dart';
 import 'package:bneeds_taxi_customer/utils/constants.dart';
-import 'package:bneeds_taxi_customer/widgets/common_button.dart';
-
 import 'package:bneeds_taxi_customer/widgets/common_main_scaffold.dart';
+import 'package:flutter/foundation.dart'; // for kIsWeb
+import '../../providers/trip_status_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -23,6 +21,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../widgets/common_appbar.dart';
 import '../../../widgets/common_drawer.dart';
+import '../../../widgets/common_shimmer.dart';
 import '../../../providers/vehicle_type_provider.dart';
 import '../../../providers/recent_rides_provider.dart';
 import '../../core/locationHelper.dart';
@@ -83,7 +82,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   //Map<String, dynamic>? _routeInfo; // distance/time
   RouteInfo? _routeInfo;
   Timer? _debounce;
-  int? _tappedCardIndex;
 
   @override
   void initState() {
@@ -94,7 +92,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _checkLocationAndSetFromField() async {
-    final hasPermission = await LocationHelper.checkAndRequestPermission(context);
+    final hasPermission = await LocationHelper.checkAndRequestPermission(
+      context,
+    );
 
     if (!hasPermission) return;
 
@@ -210,12 +210,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<RouteInfo> getRouteInfo(Position fromPos, Position toPos) async {
-    final url = Uri.parse(
-      "https://maps.googleapis.com/maps/api/directions/json"
-      "?origin=${fromPos.latitude},${fromPos.longitude}"
-      "&destination=${toPos.latitude},${toPos.longitude}"
-      "&key=${Strings.googleApiKey}",
-    );
+    const String proxy = "https://api.allorigins.win/raw?url=";
+    final targetUrl =
+        "https://maps.googleapis.com/maps/api/directions/json"
+        "?origin=${fromPos.latitude},${fromPos.longitude}"
+        "&destination=${toPos.latitude},${toPos.longitude}"
+        "&key=${Strings.googleApiKey}";
+
+    final finalUrl = kIsWeb
+        ? (proxy + Uri.encodeComponent(targetUrl))
+        : targetUrl;
+    final url = Uri.parse(finalUrl);
 
     final response = await http.get(url);
     final data = jsonDecode(response.body);
@@ -263,6 +268,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     return MainScaffold(
       title: "Home",
+      bottomNavigationBar: ref.watch(selectedServiceProvider) == null
+          ? null
+          : Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: () {
+                  final tripStatus = ref.read(tripStatusProvider);
+                  if (tripStatus.isSearching || tripStatus.tripAccepted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("You already have an active booking! 🚖"),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                    return;
+                  }
+                  context.push('/confirm-ride');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 5,
+                ),
+                child: const Text(
+                  "Book Ride Now",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(vehicleTypesProvider);
@@ -278,6 +329,90 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Active Ride Banner
+              Consumer(
+                builder: (context, ref, _) {
+                  final tripStatus = ref.watch(tripStatusProvider);
+                  if (tripStatus.isSearching || tripStatus.tripAccepted) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.deepPurple,
+                            Colors.deepPurple.shade700,
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.deepPurple.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.local_taxi,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "You have an active ride",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                Text(
+                                  tripStatus.tripAccepted
+                                      ? "Your driver is on the way!"
+                                      : "Searching for your driver...",
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (tripStatus.tripAccepted) {
+                                context.push('/tracking');
+                              } else {
+                                context.push('/searching');
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.deepPurple,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                            ),
+                            child: const Text("Return"),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+
               // Greeting
               Text(
                 '👋 Hello, ${_username ?? ""}!',
@@ -293,10 +428,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 label: "From",
                 isFrom: true,
                 icon: Icons.my_location,
-                // onChanged: (val) {
-                //   ref.read(fromLocationProvider.notifier).state = val;
-                //   ref.read(placeQueryProvider.notifier).state = val;
-                // },
+                enabled:
+                    !(ref.watch(tripStatusProvider).isSearching ||
+                        ref.watch(tripStatusProvider).tripAccepted),
                 onChanged: (val) {
                   ref.read(fromLocationProvider.notifier).state = val;
                   _routeInfo = null;
@@ -370,6 +504,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       label: "To",
                       isFrom: false,
                       icon: Icons.place_outlined,
+                      enabled:
+                          !(ref.watch(tripStatusProvider).isSearching ||
+                              ref.watch(tripStatusProvider).tripAccepted),
                       onChanged: (val) {
                         ref.read(toLocationProvider.notifier).state = val;
                         _routeInfo = null;
@@ -551,9 +688,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     },
                   );
                 },
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: LinearProgressIndicator(),
+                loading: () => const Column(
+                  children: [
+                    CommonShimmer(width: double.infinity, height: 40),
+                    SizedBox(height: 8),
+                    CommonShimmer(width: double.infinity, height: 40),
+                  ],
                 ),
                 error: (_, __) => const SizedBox(),
               ),
@@ -577,7 +717,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
                             // Reset subType selection
                             _selectedSubType = null;
-                            ref.read(selectedServiceProvider.notifier).state = null;
+                            ref.read(selectedServiceProvider.notifier).state =
+                                null;
                             // Optional: select first vehicle type
                             final vehicleTypes =
                                 ref.read(vehicleTypesProvider).value ?? [];
@@ -612,7 +753,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   ),
                 ),
-
 
               // Vehicle Subtypes
               if (_routeInfo != null)
@@ -659,11 +799,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             final isSelected =
                                 selectedService != null &&
                                 selectedService['typeId'] == item.vehSubTypeId;
-                            final bool isTapped = _tappedCardIndex == index;
 
                             return GestureDetector(
                               onTap: () {
-                                _tappedCardIndex = index;
                                 ref
                                     .read(selectedServiceProvider.notifier)
                                     .state = {
@@ -694,7 +832,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   children: [
                                     ListTile(
                                       leading: CircleAvatar(
-                                        backgroundColor: Colors.deepPurple.shade100,
+                                        backgroundColor:
+                                            Colors.deepPurple.shade100,
                                         child: const Icon(
                                           Icons.local_taxi,
                                           color: Colors.deepPurple,
@@ -724,27 +863,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                         ),
                                       ),
                                     ),
-                                    if (isTapped)
-                                      SizedBox(height: 20,),
-                                    if (isTapped)
-                                    CommonButton( text: 'Check Available', onPressed: () {
-                                      final selectedService = ref.read(selectedServiceProvider);
-
-                                      if (selectedService != null) {
-                                        final subTypeId = selectedService['typeId'];
-
-                                        if (subTypeId != null) {
-                                          context.push('/check-available-on-map/$subTypeId');
-                                        } else {
-                                          // பிழை ஏற்பட்டால், ஒரு செய்தியைக் காட்டலாம்
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Could not get vehicle ID. Please try again.')),
-                                          );
-                                        }
-                                      }
-                                    },backgroundColor: Colors.green,foregroundColor: Colors.black,),
-                                    if (isTapped)
-                                      SizedBox(height: 20,),
+                                    // if (isTapped) SizedBox(height: 20),
+                                    // if (isTapped)
+                                    //   CommonButton(
+                                    //     text: 'Check Available',
+                                    //     onPressed: () {
+                                    //       final selectedService = ref.read(
+                                    //         selectedServiceProvider,
+                                    //       );
+                                    //
+                                    //       if (selectedService != null) {
+                                    //         final subTypeId =
+                                    //             selectedService['typeId'];
+                                    //
+                                    //         if (subTypeId != null) {
+                                    //           context.push(
+                                    //             '/check-available-on-map/$subTypeId',
+                                    //           );
+                                    //         } else {
+                                    //           // பிழை ஏற்பட்டால், ஒரு செய்தியைக் காட்டலாம்
+                                    //           ScaffoldMessenger.of(
+                                    //             context,
+                                    //           ).showSnackBar(
+                                    //             const SnackBar(
+                                    //               content: Text(
+                                    //                 'Could not get vehicle ID. Please try again.',
+                                    //               ),
+                                    //             ),
+                                    //           );
+                                    //         }
+                                    //       }
+                                    //     },
+                                    //     backgroundColor: Colors.green,
+                                    //     foregroundColor: Colors.black,
+                                    //   ),
+                                    // if (isTapped) SizedBox(height: 20),
                                   ],
                                 ),
                               ),
@@ -752,50 +905,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           },
                         ),
                         const SizedBox(height: 20),
-
-
-
-                        // Book Ride Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed:
-                                ref.watch(selectedServiceProvider) == null
-                                ? null
-                                : () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const ConfirmRideScreen(),
-                                      ),
-                                    );
-                                  },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  ref.watch(selectedServiceProvider) != null
-                                  ? Colors.deepPurple
-                                  : Colors.grey,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: const Text(
-                              "Book Ride",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white70,
-                              ),
-                            ),
-                          ),
-                        ),
+                        // Book Ride Button removed from here to move to bottomNavigationBar
                       ],
                     );
                   },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
+                  loading: () => const ListShimmer(itemCount: 3),
                   error: (err, _) => Center(child: Text("Error: $err")),
                 ),
 
@@ -804,7 +918,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               if (!bothSelected)
                 Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 20,
+                      horizontal: 24,
+                    ),
                     margin: const EdgeInsets.only(top: 30),
                     decoration: BoxDecoration(
                       color: Colors.deepPurple.shade50, // soft background color
@@ -839,7 +956,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   ),
                 ),
-
             ],
           ),
         ),

@@ -8,15 +8,13 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/sharedPrefrencesHelper.dart';
+import '../providers/trip_status_provider.dart';
+import '../providers/booking_provider.dart';
+import '../widgets/common_shimmer.dart';
 
 // Payment selection provider
 final selectedPaymentProvider = StateProvider<String>((ref) => "Cash");
 final dateTimeCheckboxProvider = StateProvider<bool>((ref) => false);
-
-// Booking repository provider
-final bookingRepositoryProvider = Provider<BookingRepository>(
-  (ref) => BookingRepository(),
-);
 
 // Date & Time pickers providers
 final selectedDateProvider = StateProvider<DateTime>((ref) => DateTime.now());
@@ -41,7 +39,7 @@ class ConfirmRideScreen extends ConsumerWidget {
     final dropAddress = dropLocation.isNotEmpty ? dropLocation : "Not selected";
 
     if (selected == null) {
-      return const Scaffold(body: Center(child: Text("No service selected")));
+      return const Scaffold(body: ListShimmer(itemCount: 8));
     }
 
     String formatTime12Hour(TimeOfDay time) {
@@ -58,8 +56,25 @@ class ConfirmRideScreen extends ConsumerWidget {
       isBooking = true;
 
       final repository = ref.read(bookingRepositoryProvider);
-      final userId = SharedPrefsHelper.getUserId();
-      final mobileNo = SharedPrefsHelper.getMobileNo();
+
+      // Await these early to ensure they are available and valid
+      final currentUserId = await SharedPrefsHelper.getUserId();
+      final currentMobileNo = await SharedPrefsHelper.getMobileNo();
+
+      print(
+        "DEBUG: Booking with UserId: '$currentUserId', Mobile: '$currentMobileNo'",
+      );
+
+      if (currentUserId.isEmpty ||
+          currentUserId == "null" ||
+          currentUserId == "0") {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("User session invalid. Please log in again."),
+          ),
+        );
+        return;
+      }
 
       final selectedDate = ref.read(selectedDateProvider);
       final selectedTime = ref.read(selectedTimeProvider);
@@ -99,8 +114,8 @@ class ConfirmRideScreen extends ConsumerWidget {
       final toLatLongStr = "${toPos?.latitude},${toPos?.longitude}";
 
       final booking = BookingModel(
-        userid: await userId,
-        mobileNo: await mobileNo,
+        userid: currentUserId,
+        mobileNo: currentMobileNo,
         riderId: "",
         bookDate: bookDateStr,
         scheduled: isScheduled ? "Y" : "N",
@@ -121,7 +136,7 @@ class ConfirmRideScreen extends ConsumerWidget {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
+        builder: (_) => const Center(child: CommonShimmer(width: 60, height: 60, borderRadius: 30)),
       );
 
       try {
@@ -132,6 +147,8 @@ class ConfirmRideScreen extends ConsumerWidget {
 
         if (lastBookingId != null) {
           await SharedPrefsHelper.setLastBookingId(lastBookingId.toString());
+          // 💾 Save estimated fare amount as a fallback
+          await SharedPrefsHelper.setFareAmount(selected['price'] ?? "0");
 
           if (isScheduled) {
             // Show success SnackBar
@@ -142,6 +159,10 @@ class ConfirmRideScreen extends ConsumerWidget {
 
           // Small delay to ensure SnackBar shows
           await Future.delayed(const Duration(milliseconds: 200));
+
+          if (!isScheduled) {
+            await ref.read(tripStatusProvider.notifier).updateSearching(true);
+          }
 
           // Navigate based on scheduled flag
           context.push(isScheduled ? '/home' : '/searching');

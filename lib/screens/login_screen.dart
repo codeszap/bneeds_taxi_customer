@@ -13,6 +13,7 @@ import '../theme/app_colors.dart';
 import '../utils/fcmHelper.dart';
 import '../widgets/common_textfield.dart';
 import '../widgets/common_button.dart';
+import '../widgets/common_shimmer.dart';
 
 final usernameProvider = StateProvider<String>((ref) => '');
 final mobileProvider = StateProvider<String>((ref) => '');
@@ -26,6 +27,9 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+  int _logoTapCount = 0; // Tap counter for hidden settings
+  Timer? _tapTimer;
+
   @override
   void initState() {
     super.initState();
@@ -73,6 +77,69 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
+  void _showAdminSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Default-a empty-a vekkuren, appo thaan confusing-a irukkathu
+    final currentIp = prefs.getString('custom_api_ip') ?? "";
+    final ipController = TextEditingController(text: currentIp);
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Admin Settings ⚙️"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Change Server IP Address:"),
+            const SizedBox(height: 10),
+            TextField(
+              controller: ipController,
+              decoration: const InputDecoration(
+                hintText: "e.g. 192.168.1.5 or localhost",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newIp = ipController.text.trim();
+              if (newIp.isEmpty) {
+                await prefs.remove('custom_api_ip'); // Clear if empty
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("IP Reset to Default. Please restart app."),
+                    ),
+                  );
+                }
+              } else {
+                await prefs.setString('custom_api_ip', newIp);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        "IP Updated to: $newIp. Please restart app.",
+                      ),
+                    ),
+                  );
+                }
+              }
+              Navigator.pop(context);
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,10 +162,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        Image.asset(
-                          'assets/images/logo.png',
-                          width: 90,
-                          height: 90,
+                        GestureDetector(
+                          onTap: () {
+                            _logoTapCount++;
+                            _tapTimer?.cancel();
+                            _tapTimer = Timer(const Duration(seconds: 2), () {
+                              _logoTapCount = 0;
+                            });
+
+                            if (_logoTapCount >= 5) {
+                              _logoTapCount = 0;
+                              _showAdminSettings();
+                            }
+                          },
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 90,
+                            height: 90,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -219,14 +300,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     elevation: isFormValid ? 3 : 0,
                   ),
                   child: ref.watch(isLoadingProvider)
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white,
-                          ),
-                        )
+                      ? const ButtonShimmer()
                       : const Text(
                           'Next',
                           style: TextStyle(
@@ -367,7 +441,7 @@ class _OTPDialogState extends State<OTPDialog> {
       ),
       contentPadding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       content: SizedBox(
-        height: 150,
+        height: 250,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -425,52 +499,51 @@ class _OTPDialogState extends State<OTPDialog> {
             const SizedBox(height: 12),
             _isVerifying
                 ? const Padding(
-              padding: EdgeInsets.only(top: 16),
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: Colors.deepPurple,
-              ),
-            )
+                    padding: EdgeInsets.only(top: 16),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.deepPurple,
+                    ),
+                  )
                 : _showResend
                 ? TextButton(
-              onPressed: () async {
-                print("🔁 Resend OTP triggered");
+                    onPressed: () async {
+                      print("🔁 Resend OTP triggered");
 
-                final mobileNo = widget.ref.read(mobileProvider);
+                      final mobileNo = widget.ref.read(mobileProvider);
 
-                await authService.sendOTP(
-                  ref: widget.ref,
-                  phoneNumber: mobileNo,
-                  onCodeSent: () {
-                    print("✅ OTP resent successfully");
-                    _startTimer(); // restart timer after resend
-                  },
-                  onError: (error) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(error),
-                        backgroundColor: Colors.red,
+                      await authService.sendOTP(
+                        ref: widget.ref,
+                        phoneNumber: mobileNo,
+                        onCodeSent: () {
+                          print("✅ OTP resent successfully");
+                          _startTimer(); // restart timer after resend
+                        },
+                        onError: (error) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(error),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    child: const Text(
+                      "Resend OTP",
+                      style: TextStyle(
+                        color: Colors.deepPurple,
+                        fontWeight: FontWeight.bold,
                       ),
-                    );
-                  },
-                );
-              },
-              child: const Text(
-                "Resend OTP",
-                style: TextStyle(
-                  color: Colors.deepPurple,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            )
+                    ),
+                  )
                 : Text(
-              "Expires in $minutes:$seconds",
-              style: const TextStyle(
-                color: Colors.redAccent,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-
+                    "Expires in $minutes:$seconds",
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ],
         ),
       ),

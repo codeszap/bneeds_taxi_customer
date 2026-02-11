@@ -5,7 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class CommonDrawer extends StatelessWidget {
+import '../providers/trip_status_provider.dart';
+import 'common_shimmer.dart';
+
+class CommonDrawer extends ConsumerWidget {
   const CommonDrawer({super.key});
 
   Future<Map<String, String>> _loadSessionData() async {
@@ -17,7 +20,8 @@ class CommonDrawer extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tripStatus = ref.watch(tripStatusProvider);
     return Drawer(
       child: Column(
         children: [
@@ -29,7 +33,7 @@ class CommonDrawer extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   color: Colors.deepPurple,
                   child: const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
+                    child: ButtonShimmer(),
                   ),
                 );
               }
@@ -86,46 +90,66 @@ class CommonDrawer extends StatelessWidget {
             },
           ),
 
-          // ✅ Rest of drawer items
+          // ✅ Current Ride (Conditional)
+          if (tripStatus.isSearching || tripStatus.tripAccepted)
+            _buildDrawerItem(
+              icon: Icons.local_taxi,
+              title: "Current Ride",
+              onTap: () {
+                Navigator.pop(context);
+                if (tripStatus.tripAccepted) {
+                  context.push('/tracking');
+                } else {
+                  context.push('/searching');
+                }
+              },
+              backgroundColor: Colors.deepPurple.shade50,
+            ),
+
           _buildDrawerItem(
             icon: Icons.dashboard,
             title: "Dashboard",
-            onTap: () {
+            onTap: tripStatus.tripCompleted ? () {} : () {
               Navigator.pop(context);
               context.push('/home');
             },
+            enabled: !tripStatus.tripCompleted,
           ),
           _buildDrawerItem(
             icon: Icons.help_outline,
             title: "Help",
-            onTap: () {
+            onTap: tripStatus.tripCompleted ? () {} : () {
               Navigator.pop(context);
               context.push('/customer-support');
             },
+            enabled: !tripStatus.tripCompleted,
           ),
           _buildDrawerItem(
             icon: Icons.history,
             title: "My Rides",
-            onTap: () {
+            onTap: tripStatus.tripCompleted ? () {} : () {
               Navigator.pop(context);
               context.push('/my-rides');
             },
+            enabled: !tripStatus.tripCompleted,
           ),
           _buildDrawerItem(
             icon: Icons.person_outline,
             title: "Profile",
-            onTap: () {
+            onTap: tripStatus.tripCompleted ? () {} : () {
               Navigator.pop(context);
               context.push('/profile');
             },
+            enabled: !tripStatus.tripCompleted,
           ),
           _buildDrawerItem(
             icon: Icons.wallet,
             title: "Wallet",
-            onTap: () {
+            onTap: tripStatus.tripCompleted ? () {} : () {
               Navigator.pop(context);
               context.push('/wallet');
             },
+            enabled: !tripStatus.tripCompleted,
           ),
 
           const Spacer(),
@@ -146,7 +170,7 @@ class CommonDrawer extends StatelessWidget {
               ),
               onPressed: () async {
                 final prefs = await SharedPreferences.getInstance();
-                await prefs.clear();
+                await prefs.clear(); // Clears everything including custom IP
 
                 if (context.mounted) {
                   final container = ProviderScope.containerOf(context);
@@ -167,10 +191,20 @@ class CommonDrawer extends StatelessWidget {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
+    Color? backgroundColor,
+    bool enabled = true,
   }) {
     return ListTile(
-      leading: Icon(icon, color: Colors.deepPurple),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+      enabled: enabled,
+      tileColor: backgroundColor,
+      leading: Icon(icon, color: enabled ? Colors.deepPurple : Colors.grey),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.w500,
+          color: enabled ? Colors.black : Colors.grey,
+        ),
+      ),
       onTap: onTap,
       horizontalTitleGap: 12,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

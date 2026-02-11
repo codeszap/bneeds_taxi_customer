@@ -6,5 +6,6 @@ class ApiEndpoints {
   static const String userProfile = "/customer/frmUserProfileInsertApi";
   static const String driverProfile = "/driver/frmRiderProfileApi";
   static const String bookingRide = "/bookingRide/frmvehBookingApi";
-  static const String getBookingStatus = "/customer/frmUserProfileInsertApi?action=G";
+  static const String getBookingStatus =
+      "/customer/frmUserProfileInsertApi?action=G";
 }

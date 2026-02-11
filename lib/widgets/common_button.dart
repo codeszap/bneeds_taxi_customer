@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'common_shimmer.dart';
 
 class CommonButton extends StatelessWidget {
   final String text;
@@ -37,14 +38,7 @@ class CommonButton extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
         child: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
+            ? const ButtonShimmer()
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,

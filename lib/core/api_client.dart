@@ -1,51 +1,58 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart'; // for kDebugMode
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
   late Dio dio;
 
-  ApiClient._internal() {
+  // Default IP - update this when needed
+  //static String dynamicBaseUrl = "http://10.236.44.64:3000/api";
+  static String dynamicBaseUrl = "http://184.168.125.10:3000/api";
+
+  /// This should be called in main() before runApp()
+  static Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    final customIp = prefs.getString('custom_api_ip');
+    if (customIp != null && customIp.isNotEmpty) {
+      dynamicBaseUrl = "http://$customIp:3000/api";
+      if (kDebugMode) print("🌐 Using Custom API Base URL: $dynamicBaseUrl");
+    } else {
+      if (kDebugMode) print("🌐 Using Default API Base URL: $dynamicBaseUrl");
+    }
+    _instance._setupDio();
+  }
+
+  ApiClient._internal();
+
+  void _setupDio() {
     dio = Dio(
       BaseOptions(
-        //baseUrl: "https://www.bneedsbill.com/Ramauto/Api/",
-        baseUrl: "http://184.168.125.10:3000/api",
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
+        baseUrl: dynamicBaseUrl,
+        connectTimeout: const Duration(seconds: 60),
+        receiveTimeout: const Duration(seconds: 60),
         responseType: ResponseType.json,
       ),
     );
 
-    // Custom interceptor with emoji & debug-only logs
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
           if (kDebugMode) {
             print("➡️ [${options.method}] ${options.baseUrl}${options.path}");
-            if (options.data != null) print("📦 Body: ${options.data}");
-            if (options.queryParameters.isNotEmpty) {
-              print("🔍 Query: ${options.queryParameters}");
-            }
           }
           return handler.next(options);
         },
         onResponse: (response, handler) {
           if (kDebugMode) {
             print("✅ Success: ${response.requestOptions.path}");
-            print("📥 Result: ${response.data}");
-            print("🔚 ------------------------------\n");
           }
           return handler.next(response);
         },
         onError: (DioError e, handler) {
           if (kDebugMode) {
-            print("❌ Error: ${e.requestOptions.path}");
-            print("⚠️ Message: ${e.message}");
-            if (e.response != null) {
-              print("📥 Error Response: ${e.response?.data}");
-            }
-            print("🔚 ------------------------------\n");
+            print("❌ Error: ${e.requestOptions.path} | ${e.message}");
           }
           return handler.next(e);
         },

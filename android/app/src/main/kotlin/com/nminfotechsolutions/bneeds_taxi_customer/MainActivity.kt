@@ -1,4 +1,4 @@
-package com.example.bneeds_taxi_customer
+package com.nminfotechsolutions.bneeds_taxi_customer
 
 import io.flutter.embedding.android.FlutterActivity
 

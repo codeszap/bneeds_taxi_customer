@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:bneeds_taxi_customer/models/location_data.dart';
@@ -8,8 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../screens/home/HomeScreen.dart';
-
 
 // Recent locations
 final recentLocationsProvider =
@@ -18,40 +17,45 @@ final recentLocationsProvider =
     );
 // ---- Google Suggestions Provider ----
 final placeSuggestionsProvider =
-FutureProvider.family<List<PlaceSuggestion>, String>((ref, query) async {
-  if (query.isEmpty) return [];
+    FutureProvider.family<List<PlaceSuggestion>, String>((ref, query) async {
+      if (query.isEmpty) return [];
 
-  final url = Uri.parse(
-    "https://maps.googleapis.com/maps/api/place/autocomplete/json"
-        "?input=$query"
-        "&key=${Strings.googleApiKey}"
-        "&components=country:IN",
-  );
+      const String proxy = "https://api.allorigins.win/raw?url=";
+      final targetUrl =
+          "https://maps.googleapis.com/maps/api/place/autocomplete/json"
+          "?input=${Uri.encodeComponent(query)}"
+          "&key=${Strings.googleApiKey}"
+          "&components=country:IN";
 
-  final response = await http.get(url);
-  final data = jsonDecode(response.body);
+      final finalUrl = kIsWeb
+          ? (proxy + Uri.encodeComponent(targetUrl))
+          : targetUrl;
+      final url = Uri.parse(finalUrl);
 
-  if (data["status"] == "OK") {
-    final predictions = data["predictions"] as List;
-    return predictions
-        .map((p) => PlaceSuggestion.fromJson(p))
-        .toList();
-  }
+      final response = await http.get(url);
+      final data = jsonDecode(response.body);
 
-  return [];
-});
+      if (data["status"] == "OK") {
+        final predictions = data["predictions"] as List;
+        return predictions.map((p) => PlaceSuggestion.fromJson(p)).toList();
+      }
 
+      return [];
+    });
 
 final locationErrorDialogShownProvider = StateProvider<bool>((ref) => false);
-final selectedServiceProvider = StateProvider<Map<String, dynamic>?>((ref) => null);
+final selectedServiceProvider = StateProvider<Map<String, dynamic>?>(
+  (ref) => null,
+);
 
-final fromLocationProvider = StateProvider<String>((ref) => 'Current Locations');
+final fromLocationProvider = StateProvider<String>(
+  (ref) => 'Current Locations',
+);
 final toLocationProvider = StateProvider<String>((ref) => '');
 final placeQueryProvider = StateProvider<String>((ref) => '');
 
 final fromLatLngProvider = StateProvider<Position?>((ref) => null);
 final toLatLngProvider = StateProvider<Position?>((ref) => null);
- 
 
 final currentLocationProvider = FutureProvider<Position>((ref) async {
   bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -77,11 +81,16 @@ final currentLocationProvider = FutureProvider<Position>((ref) async {
 });
 
 Future<Position?> getLatLngFromAddress(String placeId) async {
-  final url = Uri.parse(
-    "https://maps.googleapis.com/maps/api/place/details/json"
-        "?place_id=$placeId"
-        "&key=${Strings.googleApiKey}",
-  );
+  const String proxy = "https://api.allorigins.win/raw?url=";
+  final targetUrl =
+      "https://maps.googleapis.com/maps/api/place/details/json"
+      "?place_id=$placeId"
+      "&key=${Strings.googleApiKey}";
+
+  final finalUrl = kIsWeb
+      ? (proxy + Uri.encodeComponent(targetUrl))
+      : targetUrl;
+  final url = Uri.parse(finalUrl);
 
   final response = await http.get(url);
   final data = jsonDecode(response.body);
@@ -103,4 +112,3 @@ Future<Position?> getLatLngFromAddress(String placeId) async {
   }
   return null;
 }
-

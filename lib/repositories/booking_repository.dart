@@ -55,7 +55,6 @@ class BookingRepository {
           return null;
         }
         // --- ✨ மாற்றம் இங்கே முடிகிறது ---
-
       } else {
         print("Error saving booking with status code: ${response.statusCode}");
         return null;
@@ -66,15 +65,13 @@ class BookingRepository {
     }
   }
 
-
-
   Future<bool> cancelBooking(CancelModel cancel) async {
     try {
       final payload = {
         "vehbookingdecline": [cancel.toMap()],
       };
 
-    final response = await _dio.post(
+      final response = await _dio.post(
         "${ApiEndpoints.bookingRide}?action=D",
         data: payload,
         options: Options(headers: {"Content-Type": "application/json"}),
@@ -142,6 +139,34 @@ class BookingRepository {
     } catch (e) {
       print('❌ Error fetching booking details: $e');
       return [];
+    }
+  }
+
+  Future<GetBookingDetail?> checkBookingStatus(int bookingId) async {
+    try {
+      // We use action=G which is getBookingStatus endpoint
+      // Using POST as observed in working logs
+      final response = await _dio.post(
+        '${ApiEndpoints.getBookingStatus}&Bookingid=$bookingId&Riderid=0',
+      );
+
+      dynamic resData = response.data;
+      if (resData is String) resData = jsonDecode(resData);
+
+      if (resData is Map<String, dynamic> && resData['status'] == 'success') {
+        final dataList = resData['data'] as List<dynamic>?;
+        if (dataList != null && dataList.isNotEmpty) {
+          final detail = GetBookingDetail.fromJson(dataList.first);
+          // If riderId is not empty or "0", it means a driver has been assigned
+          if (detail.riderId.isNotEmpty && detail.riderId != "0") {
+            return detail;
+          }
+        }
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error checking booking status: $e');
+      return null;
     }
   }
 }

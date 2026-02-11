@@ -1,17 +1,17 @@
-import 'package:bneeds_taxi_customer/screens/driver_searching_screen.dart';
-import 'package:bneeds_taxi_customer/screens/home/HomeScreen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
+import '../firebase_options.dart';
 import '../models/RideStorage.dart';
 import '../providers/ride_otp_provider.dart';
 import '../screens/ride_complete_screen.dart';
 import '../screens/tracking_screen.dart';
 import '../utils/sharedPrefrencesHelper.dart';
+import '../providers/trip_status_provider.dart';
+import '../providers/location_provider.dart';
 
 /// Global navigator key (to show dialogs anywhere)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -30,14 +30,14 @@ const AndroidNotificationChannel channel = AndroidNotificationChannel(
 
 /// Background message handler
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   print("⏰ BG Message: ${message.messageId}");
   _handleIncomingPush(message);
 }
 
 /// Call this in main()
 Future<void> initFirebaseMessaging() async {
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Local notifications init
   const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -103,6 +103,16 @@ Future<void> initFirebaseMessaging() async {
     print("👉 Opened from background: ${message.data}");
     _handleIncomingPush(message);
   });
+
+  // Get and print FCM Token
+  try {
+    String? token = await FirebaseMessaging.instance.getToken();
+    print("==================================================");
+    print("🔥 FCM Token: $token");
+    print("==================================================");
+  } catch (e) {
+    print("❌ Error getting FCM token: $e");
+  }
 }
 
 /// Ask runtime notification permission
@@ -124,15 +134,70 @@ Future<void> _handleIncomingPush(
   final bookingId = data['bookingId'] ?? '';
   final riderId = data['riderId'] ?? '';
 
-  //  await SharedPrefsHelper.setBookingId(bookingId.toString());
-  //await SharedPrefsHelper.setRiderId(riderId.toString());
-  print("bookingId: $bookingId");
-  print("riderId: $riderId");
+  // 💾 Persist critical state even if context is null (background/terminated)
+  if (bookingId.toString().isNotEmpty) {
+    await SharedPrefsHelper.setBookingId(bookingId.toString());
+  }
+  if (riderId.toString().isNotEmpty) {
+    await SharedPrefsHelper.setRiderId(riderId.toString());
+  }
+
+  // 1. Always update SharedPreferences for background persistence
+  if (status == 'accepted') {
+    await SharedPrefsHelper.saveTripAccepted(true);
+    await SharedPrefsHelper.setIsSearching(false);
+  } else if (status == 'trip_completed' ||
+      status == 'completed_trip' ||
+      status == 'C' ||
+      status == 'Completed' ||
+      status == 'F') {
+    await SharedPrefsHelper.saveTripAccepted(false);
+    await SharedPrefsHelper.setIsSearching(false);
+    await SharedPrefsHelper.setTripCompleted(true);
+    await SharedPrefsHelper.saveTripStarted(false);
+    
+    // Check multiple possible keys for fare (case-insensitive and common variations)
+    final fare = data['finalAmt'] ?? 
+                 data['finalamt'] ?? 
+                 data['FinalAmt'] ??
+                 data['totalAmt'] ?? 
+                 data['totalamt'] ?? 
+                 data['TotalAmt'] ??
+                 data['fareAmount'] ?? 
+                 data['fareamount'] ?? 
+                 data['FareAmount'] ??
+                 '0';
+                 
+    print("🔔 Push: Trip Completed. Final Fare from Push: $fare");
+    await SharedPrefsHelper.setFareAmount(fare.toString());
+  } else if (status == 'cancel_ride' || status == 'reset') {
+    await SharedPrefsHelper.saveTripAccepted(false);
+    await SharedPrefsHelper.setIsSearching(false);
+    await SharedPrefsHelper.setTripCompleted(false);
+  }
 
   final context = navigatorKey.currentContext;
-  if (context == null) return;
+  if (context == null) {
+    print("⚠️ Context is null, UI updates skipped. State saved to Prefs.");
+    return;
+  }
 
   final container = ProviderScope.containerOf(context, listen: false);
+
+  // 2. If app is foreground (context exists), notify providers
+  if (status == 'accepted' ||
+      status == 'trip_completed' ||
+      status == 'cancel_ride' ||
+      status == 'reset') {
+    container.read(tripStatusProvider.notifier).refresh();
+  }
+
+  // Handle reset status - clear everything and go to home
+  if (status == 'reset') {
+    print("🔄 Reset status received - clearing all trip data");
+    await resetAllTripProviders(context);
+    return;
+  }
 
   if (status == 'accepted') {
     print("--------> call accepted firebase");
@@ -178,31 +243,69 @@ Future<void> _handleIncomingPush(
     GoRouter.of(context).go('/tracking');
   }
 
-  if (status == 'trip_completed') {
-    final fareAmount = data['finalAmt'] ?? '0';
-    print("---> final amount: ${fareAmount}");
-    await SharedPrefsHelper.clearRiderId();
-    await SharedPrefsHelper.clearBookingId();
-    await SharedPrefsHelper.saveTripAccepted(false);
+  if (status == 'trip_completed' ||
+      status == 'completed_trip' ||
+      status == 'C' ||
+      status == 'Completed' ||
+      status == 'F') {
+    // Priority check for fare amount
+    final fare = data['finalAmt'] ?? 
+                 data['finalamt'] ?? 
+                 data['FinalAmt'] ??
+                 data['totalAmt'] ?? 
+                 data['totalamt'] ?? 
+                 data['TotalAmt'] ??
+                 data['fareAmount'] ?? 
+                 data['fareamount'] ?? 
+                 data['FareAmount'] ??
+                 '0';
+    print("🔔 Foreground Push: Trip Completed. Final Fare: $fare");
 
-    // Reset providers
-    container.read(rideOtpProvider.notifier).state = '';
-    container.read(driverLatLongProvider.notifier).state = '';
-    container.read(dropLatLngProvider.notifier).state = null;
-    container.read(driverMobNoProvider.notifier).state = null;
-    container.read(tripStartedProvider.notifier).state = false;
-
-    // Navigate to RideCompleteScreen
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => RideCompleteScreen(fareAmount: fareAmount),
-      ),
-    );
+    if (context.mounted) {
+      GoRouter.of(context).go('/ride-complete', extra: {'fareAmount': fare.toString()});
+    }
   }
 
   if (status == 'cancel_ride') {
     showRideCancelledDialog();
+  }
+}
+
+/// Reset all trip-related providers and navigate to home
+Future<void> resetAllTripProviders(BuildContext context) async {
+  final container = ProviderScope.containerOf(context, listen: false);
+
+  // Clear SharedPreferences
+  await SharedPrefsHelper.clearRiderId();
+  await SharedPrefsHelper.clearBookingId();
+  await SharedPrefsHelper.saveTripAccepted(false);
+  await SharedPrefsHelper.setIsSearching(false);
+  await SharedPrefsHelper.clearTripCompleted();
+  await SharedPrefsHelper.clearFareAmount();
+  await SharedPrefsHelper.clearTripStarted();
+
+  // Clear RideStorage
+  await RideStorage.clearRideData();
+
+  // Update trip status provider
+  await container.read(tripStatusProvider.notifier).updateAccepted(false);
+  await container.read(tripStatusProvider.notifier).updateSearching(false);
+
+  // Reset all ride-related providers
+  container.read(rideOtpProvider.notifier).state = '';
+  container.read(driverLatLongProvider.notifier).state = '';
+  container.read(dropLatLngProvider.notifier).state = null;
+  container.read(driverMobNoProvider.notifier).state = null;
+  container.read(tripStartedProvider.notifier).state = false;
+  container.read(selectedServiceProvider.notifier).state = null;
+  container.read(fromLocationProvider.notifier).state = 'Current Locations';
+  container.read(toLocationProvider.notifier).state = '';
+  container.read(fromLatLngProvider.notifier).state = null;
+  container.read(toLatLngProvider.notifier).state = null;
+
+  // Navigate to home
+  if (context.mounted) {
+    GoRouter.of(context).go('/home');
   }
 }
 
@@ -252,9 +355,15 @@ void _showRideAcceptedDialog({
             print(
               "💾 Saving BookingID: $bookingId and RiderID: $riderId before navigating...",
             );
+            final container = ProviderScope.containerOf(context, listen: false);
             await SharedPrefsHelper.setBookingId(bookingId.toString());
             await SharedPrefsHelper.setRiderId(riderId.toString());
-            await SharedPrefsHelper.saveTripAccepted(true);
+            await container
+                .read(tripStatusProvider.notifier)
+                .updateAccepted(true);
+            await container
+                .read(tripStatusProvider.notifier)
+                .updateSearching(false);
             final String? bookingIdStr = await SharedPrefsHelper.getBookingId();
             print("--------> bookingId: $bookingIdStr");
             Navigator.pop(ctx); // close dialog
@@ -367,33 +476,17 @@ void showRideCancelledDialog() {
                     onPressed: () async {
                       Navigator.of(context).pop();
 
-                      // Clear all saved ride data
-                      await RideStorage.clearRideData();
-                      await SharedPrefsHelper.saveTripAccepted(false);
-                      final container = ProviderScope.containerOf(
-                        context,
-                        listen: false,
-                      );
-                      // Reset providers
-                      container.read(rideOtpProvider.notifier).state = '';
-                      container.read(driverLatLongProvider.notifier).state = '';
-                      container.read(dropLatLngProvider.notifier).state = null;
-                      container.read(driverMobNoProvider.notifier).state = null;
-                      container.read(tripStartedProvider.notifier).state =
-                          false;
+                      // Reset all trip providers and navigate to home
+                      await resetAllTripProviders(context);
 
                       // Show user feedback
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Ride has been cancelled'),
-                        ),
-                      );
-
-                      // Navigate to HomeScreen
-                      GoRouter.of(context).go('/home');
-                      Future.delayed(Duration.zero, () {
-                        context.go('/home');
-                      });
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Ride has been cancelled'),
+                          ),
+                        );
+                      }
                     },
                     child: const Text(
                       "OK",

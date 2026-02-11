@@ -7,16 +7,18 @@ class RideStorage {
   static const _keyDropLatLong = 'dropLatLong';
   static const _keyDriverMobNo = 'driverMobNo';
   static const _keyRideOtp = 'rideOtp';
+  static const _keyTripCompleted = 'tripCompleted';
+  static const _keyFareAmount = 'fareAmount';
 
   // SAVE
   static Future<void> saveTripStarted(bool started) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyTripAccepted, started);
+    await prefs.setBool(_keyTripStarted, started);
   }
 
-  static Future<void> saveTripAccepted(bool started) async {
+  static Future<void> saveTripAccepted(bool accepted) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyTripStarted, started);
+    await prefs.setBool(_keyTripAccepted, accepted);
   }
 
   static Future<void> saveDriverLatLong(String latLong) async {
@@ -37,6 +39,16 @@ class RideStorage {
   static Future<void> saveRideOtp(String otp) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyRideOtp, otp);
+  }
+
+  static Future<void> saveTripCompleted(bool completed) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyTripCompleted, completed);
+  }
+
+  static Future<void> saveFareAmount(String amount) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyFareAmount, amount);
   }
 
   // LOAD
@@ -70,6 +82,16 @@ class RideStorage {
     return prefs.getString(_keyRideOtp);
   }
 
+  static Future<bool> getTripCompleted() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyTripCompleted) ?? false;
+  }
+
+  static Future<String> getFareAmount() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyFareAmount) ?? "0";
+  }
+
   // CLEAR ALL
   static Future<void> clearRideData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -79,5 +101,7 @@ class RideStorage {
     await prefs.remove(_keyDriverMobNo);
     await prefs.remove(_keyRideOtp);
     await prefs.remove(_keyTripAccepted);
+    await prefs.remove(_keyTripCompleted);
+    await prefs.remove(_keyFareAmount);
   }
 }

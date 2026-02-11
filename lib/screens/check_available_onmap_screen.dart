@@ -6,6 +6,7 @@ import 'package:location/location.dart' as loc;
 
 import '../models/user_profile_model.dart';
 import '../repositories/profile_repository.dart';
+import '../widgets/common_shimmer.dart';
 
 class CheckAvailableOnMapScreen extends StatefulWidget {
   final String vehSubTypeId;
@@ -279,8 +280,12 @@ class _CheckAvailableOnMapScreenState extends State<CheckAvailableOnMapScreen> {
             ),
           // Loading Indicator-ஐ மையத்தில் காட்டவும்
           if (_loading)
-            const Center(
-              child: CircularProgressIndicator(),
+            Center(
+              child: CommonShimmer(
+                width: MediaQuery.of(context).size.width * 0.8,
+                height: MediaQuery.of(context).size.height * 0.6,
+                borderRadius: 20,
+              ),
             ),
         ],
       ),

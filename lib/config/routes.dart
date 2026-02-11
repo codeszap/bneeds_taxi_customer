@@ -1,3 +1,4 @@
+import 'package:bneeds_taxi_customer/screens/confirm_ride_screen.dart';
 import 'package:bneeds_taxi_customer/screens/customer_support_screen.dart';
 import 'package:bneeds_taxi_customer/screens/driver_searching_screen.dart';
 import 'package:bneeds_taxi_customer/screens/my_rides_screen.dart';
@@ -21,22 +22,10 @@ final GoRouter router = GoRouter(
   navigatorKey: navigatorKey,
   initialLocation: '/',
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const SplashScreen(),
-    ),
-    GoRoute(
-      path: '/splash',
-      builder: (context, state) => const SplashScreen(),
-    ),
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginScreen(),
-    ),
-    GoRoute(
-      path: '/home',
-      builder: (context, state) => const HomeScreen(),
-    ),
+    GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+    GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
+    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+    GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
     GoRoute(
       path: '/manual',
       builder: (context, state) => const ManualStartScreen(),
@@ -75,20 +64,20 @@ final GoRouter router = GoRouter(
       path: '/tracking',
       builder: (context, state) => const TrackingScreen(),
     ),
-    GoRoute(
-      path: '/wallet',
-      builder: (context, state) => const WalletScreen(),
-    ),
+    GoRoute(path: '/wallet', builder: (context, state) => const WalletScreen()),
     GoRoute(
       path: '/select-on-map',
       builder: (context, state) => const SelectOnMapScreen(),
     ),
 
     GoRoute(
-      path: '/check-available-on-map/:vehSubTypeId', // <--- ':vehSubTypeId' ஐச் சேர்க்கவும்
+      path:
+          '/check-available-on-map/:vehSubTypeId', // <--- ':vehSubTypeId' ஐச் சேர்க்கவும்
       builder: (context, state) {
         final vehSubTypeId = state.pathParameters['vehSubTypeId']!;
-        return CheckAvailableOnMapScreen(vehSubTypeId: vehSubTypeId); // <--- ID-ஐ constructor-க்கு அனுப்பவும்
+        return CheckAvailableOnMapScreen(
+          vehSubTypeId: vehSubTypeId,
+        ); // <--- ID-ஐ constructor-க்கு அனுப்பவும்
       },
     ),
 
@@ -112,6 +101,10 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/my-rides',
       builder: (context, state) => const MyRidesScreen(),
+    ),
+    GoRoute(
+      path: '/confirm-ride',
+      builder: (context, state) => const ConfirmRideScreen(),
     ),
     GoRoute(
       path: '/profile',

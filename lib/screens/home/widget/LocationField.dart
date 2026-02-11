@@ -5,7 +5,7 @@ import 'package:bneeds_taxi_customer/providers/location_provider.dart';
 
 import '../HomeScreen.dart';
 
-class LocationField extends ConsumerStatefulWidget { 
+class LocationField extends ConsumerStatefulWidget {
   final String label;
   final bool isFrom;
   final IconData icon;
@@ -13,6 +13,7 @@ class LocationField extends ConsumerStatefulWidget {
   final Function(String) onChanged;
   final Function(PlaceSuggestion) onSuggestionTap;
 
+  final bool enabled;
   const LocationField({
     required this.label,
     required this.isFrom,
@@ -20,6 +21,7 @@ class LocationField extends ConsumerStatefulWidget {
     required this.onChanged,
     required this.onSuggestionTap,
     this.suffixIcon,
+    this.enabled = true,
     super.key,
   });
 
@@ -27,7 +29,8 @@ class LocationField extends ConsumerStatefulWidget {
   ConsumerState<LocationField> createState() => _LocationFieldState();
 }
 
-class _LocationFieldState extends ConsumerState<LocationField> { // _ is fine here
+class _LocationFieldState extends ConsumerState<LocationField> {
+  // _ is fine here
   late TextEditingController _controller;
 
   @override
@@ -51,6 +54,7 @@ class _LocationFieldState extends ConsumerState<LocationField> { // _ is fine he
 
     return TextField(
       controller: _controller,
+      enabled: widget.enabled,
       onChanged: widget.onChanged,
       decoration: InputDecoration(
         labelText: widget.label,

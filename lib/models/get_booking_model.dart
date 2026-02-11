@@ -23,7 +23,6 @@ class GetBookingDetail {
   final String? finalAmt;
   final String otp;
 
-
   GetBookingDetail({
     required this.bookingId,
     required this.userId,
@@ -60,10 +59,9 @@ class GetBookingDetail {
 
       // User/Rider Details (Exact Keys)
       userName: json['username']?.toString() ?? '',
-    userMobileNo: json['usermobileno']?.toString() ?? '',
+      userMobileNo: json['usermobileno']?.toString() ?? '',
       riderName: json['ridername']?.toString() ?? '',
       riderMobileNo: json['ridermobileno']?.toString() ?? '',
-    riderLatLong: json['riderlatlong']?.toString() ?? '',
       riderStatus: json['riderstatus']?.toString() ?? '',
 
       // Vehicle Details
@@ -82,9 +80,9 @@ class GetBookingDetail {
       bookStatus: json['bookstatus']?.toString() ?? '',
       pickupLatLong: json['pickuplatlong']?.toString() ?? '',
       dropUpLatLong: json['dropuplatlong']?.toString() ?? '',
+      riderLatLong: json['riderlatlong']?.toString() ?? '',
 
       finalAmt: json['finalamt']?.toString(),
-
       otp: json['otp']?.toString() ?? '',
     );
   }

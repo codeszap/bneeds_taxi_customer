@@ -16,10 +16,13 @@ class SharedPrefsKeys {
   static const String fcmToken = "fcmToken";
   static const String driverUsername = "driverUsername";
   static const String tripAccepted = 'tripAccepted';
+  static const String isSearching = 'isSearching';
+  static const String tripStarted = 'tripStarted';
+  static const String tripCompleted = 'tripCompleted';
+  static const String fareAmount = 'fareAmount';
 }
 
 class SharedPrefsHelper {
-
   /// ---------- SET METHODS ----------
   static Future<void> setDriverStatus(String status) async {
     final prefs = await SharedPreferences.getInstance();
@@ -91,6 +94,26 @@ class SharedPrefsHelper {
     await prefs.setBool(SharedPrefsKeys.tripAccepted, accepted);
   }
 
+  static Future<void> setIsSearching(bool searching) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(SharedPrefsKeys.isSearching, searching);
+  }
+
+  static Future<void> setTripCompleted(bool completed) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(SharedPrefsKeys.tripCompleted, completed);
+  }
+
+  static Future<void> setFareAmount(String amount) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(SharedPrefsKeys.fareAmount, amount);
+  }
+
+  static Future<void> saveTripStarted(bool started) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(SharedPrefsKeys.tripStarted, started);
+  }
+
   /// ---------- GET METHODS ----------
   static Future<String> getDriverStatus() async {
     final prefs = await SharedPreferences.getInstance();
@@ -109,14 +132,33 @@ class SharedPrefsHelper {
 
   static Future<bool> getTripAccepted() async {
     final prefs = await SharedPreferences.getInstance();
-    // 💡 நீங்கள் தவறான மாறி பெயரைப் பயன்படுத்தியுள்ளீர்கள். 'tripAccepted' என்பதற்கு பதிலாக SharedPrefsKeys.tripAccepted-ஐப் பயன்படுத்தவும்.
     return prefs.getBool(SharedPrefsKeys.tripAccepted) ?? false;
   }
 
-  // static Future<String?> getLastBookingId() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   return prefs.getString(SharedPrefsKeys.lastBookingId);
-  // }
+  static Future<bool> getIsSearching() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(SharedPrefsKeys.isSearching) ?? false;
+  }
+
+  static Future<bool> getTripCompleted() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(SharedPrefsKeys.tripCompleted) ?? false;
+  }
+
+  static Future<String> getFareAmount() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(SharedPrefsKeys.fareAmount) ?? "0";
+  }
+
+  static Future<bool> getTripStarted() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(SharedPrefsKeys.tripStarted) ?? false;
+  }
+
+  static Future<String?> getLastBookingId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(SharedPrefsKeys.lastBookingId);
+  }
 
   static Future<String> getUserId() async {
     final prefs = await SharedPreferences.getInstance();
@@ -197,5 +239,25 @@ class SharedPrefsHelper {
   static Future<void> clearTripAccepted() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(SharedPrefsKeys.tripAccepted);
+  }
+
+  static Future<void> clearIsSearching() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(SharedPrefsKeys.isSearching);
+  }
+
+  static Future<void> clearTripCompleted() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(SharedPrefsKeys.tripCompleted);
+  }
+
+  static Future<void> clearFareAmount() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(SharedPrefsKeys.fareAmount);
+  }
+
+  static Future<void> clearTripStarted() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(SharedPrefsKeys.tripStarted);
   }
 }

@@ -1,10 +1,18 @@
 import 'dart:async';
 
 import 'package:bneeds_taxi_customer/repositories/profile_repository.dart';
-import 'package:bneeds_taxi_customer/utils/sharedPrefrencesHelper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../providers/location_provider.dart';
+import '../providers/ride_otp_provider.dart';
+import 'tracking_screen.dart';
+import 'confirm_ride_screen.dart';
+import '../providers/trip_status_provider.dart';
+import '../utils/sharedPrefrencesHelper.dart';
+import '../providers/booking_provider.dart';
+import '../widgets/common_shimmer.dart';
 
 // ------------------- ENUM + STATE + PROVIDER -------------------
 
@@ -17,7 +25,7 @@ class DriverSearchState {
 
 class DriverSearchNotifier extends StateNotifier<DriverSearchState> {
   DriverSearchNotifier(this.ref)
-      : super(const DriverSearchState(status: DriverSearchStatus.idle));
+    : super(const DriverSearchState(status: DriverSearchStatus.idle));
 
   final Ref ref;
 
@@ -36,12 +44,28 @@ class DriverSearchNotifier extends StateNotifier<DriverSearchState> {
   void cancelSearch() {
     state = const DriverSearchState(status: DriverSearchStatus.idle);
   }
+
+  void clearTripData() {
+    ref.invalidate(selectedServiceProvider);
+    ref.invalidate(toLocationProvider);
+    ref.invalidate(toLatLngProvider);
+    ref.invalidate(placeQueryProvider);
+    ref.invalidate(rideOtpProvider);
+    ref.invalidate(driverLatLongProvider);
+    ref.invalidate(driverMobNoProvider);
+    ref.invalidate(dropLatLngProvider);
+    ref.invalidate(tripStartedProvider);
+    ref.invalidate(selectedPaymentProvider);
+    ref.invalidate(dateTimeCheckboxProvider);
+    ref.invalidate(selectedDateProvider);
+    ref.invalidate(selectedTimeProvider);
+  }
 }
 
 final driverSearchProvider =
-StateNotifierProvider<DriverSearchNotifier, DriverSearchState>(
+    StateNotifierProvider<DriverSearchNotifier, DriverSearchState>(
       (ref) => DriverSearchNotifier(ref),
-);
+    );
 
 // ------------------- MAIN SCREEN -------------------
 
@@ -56,20 +80,64 @@ class DriverSearchingScreen extends ConsumerStatefulWidget {
 class _DriverSearchingScreenState extends ConsumerState<DriverSearchingScreen> {
   bool _triggered = false;
   Timer? _searchTimer;
+  Timer? _pollTimer;
 
   @override
-  void initState() {super.initState();
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    ref.read(driverSearchProvider.notifier).startSearch();
-    startTimer();
-  });
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(driverSearchProvider.notifier).startSearch();
+      startTimer();
+      startPolling();
+    });
   }
 
   void startTimer() {
     _searchTimer?.cancel();
     _searchTimer = Timer(const Duration(minutes: 1), () {
-      if (mounted && ref.read(driverSearchProvider).status == DriverSearchStatus.searching) {
+      if (mounted &&
+          ref.read(driverSearchProvider).status ==
+              DriverSearchStatus.searching) {
         ref.read(driverSearchProvider.notifier).setError();
+      }
+    });
+  }
+
+  void startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      final searchStatus = ref.read(driverSearchProvider).status;
+      if (searchStatus != DriverSearchStatus.searching) {
+        timer.cancel();
+        return;
+      }
+
+      final bookingIdStr = await SharedPrefsHelper.getLastBookingId();
+      if (bookingIdStr == null || bookingIdStr.isEmpty) return;
+
+      final bookingId = int.tryParse(bookingIdStr);
+      if (bookingId == null) return;
+
+      final repository = ref.read(bookingRepositoryProvider);
+      final bookingDetail = await repository.checkBookingStatus(bookingId);
+
+      if (bookingDetail != null && mounted) {
+        print(
+          "🚕 Driver assigned (via polling)! RiderId: ${bookingDetail.riderId}",
+        );
+
+        // Save status and details
+        await SharedPrefsHelper.setRiderId(bookingDetail.riderId);
+        await SharedPrefsHelper.setBookingId(bookingDetail.bookingId);
+
+        // Mark found to trigger navigation in build()
+        ref.read(driverSearchProvider.notifier).markDriverFound();
+        timer.cancel();
       }
     });
   }
@@ -77,22 +145,22 @@ class _DriverSearchingScreenState extends ConsumerState<DriverSearchingScreen> {
   @override
   void dispose() {
     _searchTimer?.cancel();
+    _pollTimer?.cancel();
     super.dispose();
   }
-
-
-
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(driverSearchProvider);
     final notifier = ref.read(driverSearchProvider.notifier);
 
-
     if (state.status == DriverSearchStatus.found) {
       _searchTimer?.cancel();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.go('/tracking');
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final tpNotifier = ref.read(tripStatusProvider.notifier);
+        await tpNotifier.updateSearching(false);
+        await tpNotifier.updateAccepted(true);
+        if (mounted) context.go('/tracking');
       });
     }
 
@@ -102,7 +170,10 @@ class _DriverSearchingScreenState extends ConsumerState<DriverSearchingScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: switch (state.status) {
-            DriverSearchStatus.searching => _buildSearchingUI(context, notifier),
+            DriverSearchStatus.searching => _buildSearchingUI(
+              context,
+              notifier,
+            ),
             DriverSearchStatus.error => _buildErrorUI(context, notifier),
             _ => _buildSearchingUI(context, notifier),
           },
@@ -111,7 +182,10 @@ class _DriverSearchingScreenState extends ConsumerState<DriverSearchingScreen> {
     );
   }
 
-  Widget _buildSearchingUI(BuildContext context, DriverSearchNotifier notifier) {
+  Widget _buildSearchingUI(
+    BuildContext context,
+    DriverSearchNotifier notifier,
+  ) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -141,10 +215,12 @@ class _DriverSearchingScreenState extends ConsumerState<DriverSearchingScreen> {
         ),
         const SizedBox(height: 40),
         ElevatedButton.icon(
-          onPressed: () {
+          onPressed: () async {
+            await ref.read(tripStatusProvider.notifier).updateSearching(false);
+            notifier.clearTripData();
             notifier.cancelSearch();
             _searchTimer?.cancel();
-            context.go('/home');
+            if (context.mounted) context.go('/home');
           },
           icon: const Icon(Icons.close),
           label: const Text("Cancel Ride"),
@@ -179,12 +255,13 @@ class _DriverSearchingScreenState extends ConsumerState<DriverSearchingScreen> {
         //   style: TextStyle(fontSize: 14, color: Colors.black54),
         // ),
 
-       // const SizedBox(height: 30),
-
+        // const SizedBox(height: 30),
         ElevatedButton(
-          onPressed: () {
+          onPressed: () async {
+            await ref.read(tripStatusProvider.notifier).updateSearching(false);
+            notifier.clearTripData();
             notifier.cancelSearch();
-            context.go('/home');
+            if (context.mounted) context.go('/home');
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.green,
@@ -195,5 +272,4 @@ class _DriverSearchingScreenState extends ConsumerState<DriverSearchingScreen> {
       ],
     );
   }
-
 }
